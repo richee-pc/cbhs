@@ -108,6 +108,8 @@ const HINT_COOLDOWN_SEC=5;      // 힌트 쿨타임(초)
 const MAX_ATTEMPTS=3;           // 1인당 도전 가능 횟수 (그중 최고 등급으로 선물)
 const SCHOOL='조선대학교부속고등학교';
 const EVENT_NAME='2026 AI·SW 교육주간';
+const PICKUP_PLACE='4층 디지털정보부실';                 // 선물 수령 장소
+const PICKUP_TEACHERS='김다은 선생님, 강승희 선생님';   // 담당 선생님
 
 /* =========================================================
    1. 문제 은행 — 김경수 저 《AI 읽는 힘, 보는 힘(AI 문해력·문화력)》(길벗캠퍼스, 2026)
@@ -426,7 +428,8 @@ function screenMenu(){
       <ul class="text-[13px] text-amber-50 mt-2 space-y-1.5 leading-relaxed">
         <li>🎟️ 도전 기회는 <b class="text-amber-300">1인당 ${MAX_ATTEMPTS}번</b>이에요.</li>
         <li>🏆 ${MAX_ATTEMPTS}번 중 <b class="text-amber-300">가장 높은 등급</b>으로 선물을 받아요.</li>
-        <li>🎁 선물은 <b class="text-amber-300">한 번만</b> 받을 수 있어요. 도전을 마치면 <b>'도전 종료'</b>를 누르고 인증서를 <b>정보실 선생님</b>께 보여주세요.</li>
+        <li>🎁 선물은 <b class="text-amber-300">한 번만</b> 받을 수 있어요. 도전을 마치면 <b>'도전 종료'</b>를 누르고 인증서를 보여주세요.</li>
+        <li>📍 선물 수령: <b class="text-amber-300">${PICKUP_PLACE}</b><br><span class="text-amber-100/80">(${PICKUP_TEACHERS})</span></li>
         <li>⚠️ 시작 버튼을 누르면 1회가 사용돼요. 중간에 포기하거나 새로고침해도 1회로 처리돼요.</li>
       </ul>
       <div class="flex items-center justify-between mt-3 rounded-xl bg-black/30 px-3 py-2">
@@ -451,7 +454,7 @@ function screenMenu(){
       <div class="text-[13px] font-medium opacity-80 mt-0.5">${quizData.length}문항 중 ${MISSION_COUNT}문제 랜덤 출제 · 약 5분 · 남은 기회 ${left}번</div>
     </button>`:`<div class="w-full rounded-2xl p-5 mt-4 text-center border border-red-500/60 bg-red-500/10">
       <p class="text-lg font-black text-red-300">🔒 도전이 종료되었어요</p>
-      <p class="text-[13px] text-slate-300 mt-1">${best?'위의 인증서를 정보실 선생님께 보여주고 선물을 받으세요!':'도전 기회를 모두 사용했어요.'}</p></div>`}
+      <p class="text-[13px] text-slate-300 mt-1">${best?`위의 인증서를 ${PICKUP_PLACE}에 보여주고 선물을 받으세요!`:'도전 기회를 모두 사용했어요.'}</p></div>`}
 
     <div class="panel rounded-2xl p-4 mt-5">
       <p class="font-bold text-cyan-300 mb-2">🎁 탈출 등급 & 보상</p>
@@ -900,6 +903,7 @@ function screenCert(){
           <div><span class="text-slate-500">최고 기록 일시</span><br><b class="font-mono2">${fmtTime(new Date(best.end))}</b></div>
           <div><span class="text-slate-500">소요 / 오답 / 힌트</span><br><b class="font-mono2">${fmtDur(best.dur)} / ${best.mistakes} / ${best.hints}</b></div>
         </div>
+        <div class="mt-3 rounded-xl bg-black/30 px-3 py-2 text-center text-[12px]">📍 선물 수령: <b class="text-amber-300">${PICKUP_PLACE}</b><br><span class="text-slate-400">${PICKUP_TEACHERS}</span></div>
         <div class="mt-3 rounded-xl px-3 py-2 text-center text-[13px] font-black ${rec.final?'bg-emerald-400/20 text-emerald-300 border border-emerald-400/60':'bg-amber-400/15 text-amber-300 border border-amber-400/60'}">
           ${rec.final?'🔒 최종 확정 — 선물 수령 가능':`⏳ 도전 진행 중 (남은 기회 ${left}번) — 확정 후 선물 수령`}
         </div>
@@ -911,7 +915,7 @@ function screenCert(){
     </div>
   </div>
   <div class="mt-3 overflow-hidden rounded-2xl bg-amber-400 text-slate-900 font-black py-3">
-    <span class="marquee">📸 ${rec.final?'이 화면을 정보실 선생님께 보여주고 선물을 받으세요!':'도전을 마치면 \'도전 종료\'를 누른 뒤 정보실 선생님께 보여주세요!'} 📸</span>
+    <span class="marquee">📸 ${rec.final?`이 화면을 ${PICKUP_PLACE}(${PICKUP_TEACHERS})께 보여주고 선물을 받으세요!`:`도전을 마치면 '도전 종료'를 누른 뒤 ${PICKUP_PLACE}에 보여주세요!`} 📸</span>
   </div>`;
   $('#certBtns').innerHTML=`
     ${!rec.final?`<button id="finalBtn" class="btn-solid w-full rounded-2xl p-4 mt-3 text-base" style="background:linear-gradient(90deg,#d97706,#f59e0b);box-shadow:0 0 20px rgba(245,158,11,.5)">🏁 도전 종료하고 선물 받기 (최종 확정)</button>`:''}
