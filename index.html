@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Project AGI: 잠긴 연구소</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0f172a;--cyan:#06b6d4;--emerald:#10b981;--red:#ef4444;--violet:#a855f7;}
+  html,body{background:var(--bg);color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
+  .font-orb{font-family:'Orbitron','Noto Sans KR',sans-serif;}
+  .font-mono2{font-family:'JetBrains Mono','Noto Sans KR',monospace;}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+    background-image:linear-gradient(rgba(6,182,212,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(6,182,212,.07) 1px,transparent 1px);
+    background-size:28px 28px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;}
+  .glow-c{text-shadow:0 0 6px rgba(6,182,212,.9),0 0 18px rgba(6,182,212,.6);}
+  .glow-e{text-shadow:0 0 6px rgba(16,185,129,.9),0 0 18px rgba(16,185,129,.6);}
+  .glow-r{text-shadow:0 0 6px rgba(239,68,68,.9),0 0 18px rgba(239,68,68,.6);}
+  .panel{background:linear-gradient(160deg,rgba(15,23,42,.92),rgba(30,41,59,.85));border:1px solid rgba(6,182,212,.35);
+    box-shadow:0 0 0 1px rgba(6,182,212,.08) inset,0 0 24px rgba(6,182,212,.15);backdrop-filter:blur(6px);}
+  .btn-neon{border:1px solid rgba(6,182,212,.55);background:rgba(6,182,212,.08);transition:all .15s;}
+  .btn-neon:active{transform:scale(.97);background:rgba(6,182,212,.25);}
+  .btn-solid{background:linear-gradient(90deg,#0891b2,#06b6d4);box-shadow:0 0 20px rgba(6,182,212,.5);color:#0f172a;font-weight:900;transition:transform .12s;}
+  .btn-solid:active{transform:scale(.97);}
+  .btn-solid:disabled,.btn-neon:disabled{opacity:.35;filter:grayscale(.7);}
+  .noselect{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+  .tip{font-size:12px;color:#94a3b8;text-align:center;margin-bottom:10px;}
+  .num{font-family:'Orbitron',sans-serif;color:#67e8f9;width:28px;height:28px;flex-shrink:0;border-radius:8px;border:1px solid rgba(6,182,212,.6);display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .scanbar{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#06b6d4,#a5f3fc,#06b6d4,transparent);
+    box-shadow:0 0 14px 3px rgba(6,182,212,.7);animation:scan 2.6s ease-in-out infinite;pointer-events:none;z-index:5;}
+  @keyframes scan{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
+  .caret::after{content:"▋";color:#06b6d4;animation:blink 1s steps(1) infinite;margin-left:2px;}
+  @keyframes blink{50%{opacity:0}}
+  #flash{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:0;background:radial-gradient(ellipse at center,rgba(239,68,68,.15),rgba(239,68,68,.65));}
+  .flash-on{animation:redflash .9s ease-out;}
+  @keyframes redflash{0%,40%{opacity:1}20%,60%{opacity:.2}100%{opacity:0}}
+  .shake{animation:shake .45s;}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+  .pop{animation:pop .35s cubic-bezier(.2,1.6,.4,1);}
+  @keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+  .fade-in{animation:fadein .4s ease-out;}
+  @keyframes fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .sel{border-color:#06b6d4!important;background:rgba(6,182,212,.22)!important;box-shadow:0 0 16px rgba(6,182,212,.5);}
+  .ok{border-color:#10b981!important;background:rgba(16,185,129,.25)!important;box-shadow:0 0 18px rgba(16,185,129,.6)!important;}
+  .bad{border-color:#ef4444!important;background:rgba(239,68,68,.2)!important;}
+  .hot{background:rgba(6,182,212,.25)!important;box-shadow:0 0 24px #06b6d4;transform:scale(1.03);}
+  .pulse-ring{animation:ring 2s infinite;}
+  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(6,182,212,.6)}70%{box-shadow:0 0 0 14px rgba(6,182,212,0)}100%{box-shadow:0 0 0 0 rgba(6,182,212,0)}}
+  .eye{animation:eye 3.5s ease-in-out infinite;transform-origin:center;}
+  @keyframes eye{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+  .rot{animation:rot 12s linear infinite;transform-origin:center;}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  /* slider */
+  input[type=range].cyber{-webkit-appearance:none;appearance:none;width:100%;height:14px;border-radius:999px;
+    background:linear-gradient(90deg,#10b981,#06b6d4,#a855f7,#ef4444);outline:none;box-shadow:0 0 12px rgba(6,182,212,.5);}
+  input[type=range].cyber::-webkit-slider-thumb{-webkit-appearance:none;width:38px;height:38px;border-radius:50%;background:#0f172a;border:3px solid #a5f3fc;box-shadow:0 0 16px #06b6d4;}
+  input[type=range].cyber::-moz-range-thumb{width:34px;height:34px;border-radius:50%;background:#0f172a;border:3px solid #a5f3fc;box-shadow:0 0 16px #06b6d4;}
+  /* wire */
+  .wire .wl,.wire .wr{transition:transform .25s;}
+  .wire .wl{transform-origin:left center}.wire .wr{transform-origin:right center}
+  .wire.cut .wl{transform:translateX(-10px) rotate(-12deg);}
+  .wire.cut .wr{transform:translateX(10px) rotate(12deg);}
+  .term{width:10px;height:16px;border-radius:3px;background:#475569;flex-shrink:0;}
+  /* bug */
+  .bug{will-change:transform;}
+  /* certificate hologram */
+  .holo{position:relative;overflow:hidden;}
+  .holo::before{content:"";position:absolute;inset:-50%;pointer-events:none;
+    background:conic-gradient(from 0deg,rgba(6,182,212,.0),rgba(6,182,212,.25),rgba(168,85,247,.25),rgba(16,185,129,.25),rgba(236,72,153,.2),rgba(6,182,212,0));
+    animation:rot 6s linear infinite;mix-blend-mode:screen;}
+  .holo::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;pointer-events:none;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);animation:shine 2.8s ease-in-out infinite;}
+  @keyframes shine{0%{left:-60%}60%,100%{left:130%}}
+  .seal{animation:sealpulse 1.6s ease-in-out infinite;}
+  @keyframes sealpulse{0%,100%{transform:scale(1) rotate(0);filter:hue-rotate(0)}50%{transform:scale(1.08) rotate(8deg);filter:hue-rotate(90deg)}}
+  @keyframes gradmove{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+  .marquee{white-space:nowrap;animation:marq 9s linear infinite;display:inline-block;}
+  @keyframes marq{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:55;}
+  .safe-b{padding-bottom:max(16px,env(safe-area-inset-bottom));}
+</style>
+</head>
+<body class="min-h-screen overflow-x-hidden">
+<div id="flash"></div>
+<canvas id="confetti"></canvas>
+
+<main id="app" class="relative z-10 mx-auto max-w-md min-h-screen px-4 pt-5 safe-b"></main>
+
+<script>
+/* =========================================================
+   ★ 선생님 설정 구역 — 등급 기준 & 선물 문구를 자유롭게 바꾸세요
+   점수 = 100 - (오답 × 10) - (힌트 × 5)
+========================================================= */
+const GRADES=[
+  {g:'S',min:100,title:'레전드 화이트해커',prize:'🏆 S등급 특별 선물',color:'#facc15'},
+  {g:'A',min:85, title:'엘리트 해커',      prize:'🎁 A등급 선물',     color:'#06b6d4'},
+  {g:'B',min:70, title:'정예 요원',        prize:'🍫 B등급 선물',     color:'#10b981'},
+  {g:'C',min:0,  title:'견습 요원',        prize:'🍬 참가 선물',      color:'#a855f7'},
+];
+const MISSION_COUNT=7;          // 출제 문항 수 (구역당 1문제)
+const WRONG_LOCK_SEC=3;         // 오답 시 잠금 시간(초)
+const HINT_COOLDOWN_SEC=5;      // 힌트 쿨타임(초)
+const MAX_ATTEMPTS=3;           // 1인당 도전 가능 횟수 (그중 최고 등급으로 선물)
+const SCHOOL='조선대학교부속고등학교';
+const EVENT_NAME='2026 AI·SW 교육주간';
+
+/* =========================================================
+   1. 문제 은행 — 김경수 저 《AI 읽는 힘, 보는 힘(AI 문해력·문화력)》(길벗캠퍼스, 2026)
+   13강 목차(178개 질문)를 7개 구역으로 묶어 출제 · 각 문항의 ref = 책의 해당 질문 번호
+   type: mc(4지선다) / ox(참·거짓) / word(암호 조각 맞추기)
+========================================================= */
+const zones = [
+  {id:1,name:"AI 문해력과 LLM",lecture:"1~3강",icon:"🧠",proto:"NEURAL-CORE"},
+  {id:2,name:"산업혁명과 AI 반도체",lecture:"4강",icon:"💾",proto:"SILICON-GATE"},
+  {id:3,name:"AI 패권과 피지컬 AI",lecture:"5~6강",icon:"⚡",proto:"POWER-GRID"},
+  {id:4,name:"일자리 대전환과 질문의 힘",lecture:"7~8강",icon:"⌨️",proto:"PROMPT-KEY"},
+  {id:5,name:"1인 미디어와 알고리즘",lecture:"9~10강",icon:"📱",proto:"FEED-FILTER"},
+  {id:6,name:"AI 방어 문해력",lecture:"11강",icon:"🛡️",proto:"SHIELD-SCAN"},
+  {id:7,name:"AI 윤리와 AI 문화력",lecture:"12~13강",icon:"⚖️",proto:"CULTURE-CORE"},
+];
+
+const quizData = [
+  /* ---------- 구역 1 · 1~3강: 왜 AI 문해력·문화력인가 / AI 개념 / LLM·환각 ---------- */
+  {id:1,zone:1,ref:"1강",type:'mc',q:"이 책은 'AI 문해력'과 'AI 문화력'을 각각 어떤 힘으로 정의할까요?",options:["문해력은 해석하는 힘, 문화력은 발산하는 힘","문해력은 암기하는 힘, 문화력은 계산하는 힘","문해력은 타자 속도, 문화력은 코딩 실력","문해력은 검색 능력, 문화력은 소비 능력"],answer:0,hint:"AI를 읽고 '해석'하고, 그것을 문화로 '발산'합니다."},
+  {id:2,zone:1,ref:"Q25",type:'mc',q:"생성형 AI가 마치 사실인 것처럼 그럴듯하게 거짓 정보를 지어내는 현상을 무엇이라고 부를까요?",options:["할루시네이션(환각)","딥페이크","오버클럭","바이브코딩"],answer:0,hint:"영어로 '환각'을 뜻하는 단어입니다."},
+  {id:3,zone:1,ref:"Q24",type:'mc',q:"거대언어모델(LLM)이 방대한 빅데이터를 처리할 때 글자를 쪼개는 가장 작은 단위를 무엇이라 할까요?",options:["바이트","토큰(Token)","픽셀","알고리즘"],answer:1,hint:"놀이공원에서 쓰던 코인이나 표를 생각해보세요."},
+  {id:4,zone:1,ref:"Q12",type:'mc',q:"2024년 노벨 화학상은 단백질 구조를 예측한 AI 연구자들에게 돌아갔습니다. 구글 딥마인드가 만든 이 AI의 이름은?",options:["알파고","알파폴드","제미나이","챗GPT"],answer:1,hint:"단백질이 '접히는(Fold)' 구조를 해석했습니다."},
+  {id:5,zone:1,ref:"Q9",type:'ox',q:"딥러닝은 머신러닝의 한 분야로, 인공신경망을 여러 층 깊게(Deep) 쌓아 학습하는 기술이다.",answer:true,hint:"AI ⊃ 머신러닝 ⊃ 딥러닝의 포함 관계를 떠올려 보세요.",explain:"AI 안에 머신러닝이, 머신러닝 안에 딥러닝이 포함됩니다."},
+  {id:6,zone:1,ref:"1강",type:'ox',q:"책에서 말하는 'AX'는 'AI 대전환(AI Transformation)'을 뜻한다.",answer:true,hint:"DX(디지털 전환)의 다음 단계예요.",explain:"AX는 AI Transformation, 즉 AI가 사회·산업 전반을 바꾸는 'AI 대전환'입니다."},
+  {id:7,zone:1,ref:"Q10",type:'word',q:"1950년 '기계는 생각할 수 있는가?'라는 위대한 질문을 던진 컴퓨터 과학의 아버지, 앨런 ○○은?",word:"튜링",decoys:["뉴","턴","잡"],hint:"'○○ 테스트'로도 유명해요."},
+
+  /* ---------- 구역 2 · 4강: 산업혁명 → 폴리매스 → 스마트폰 → AI 반도체 → GPU ---------- */
+  {id:8,zone:2,ref:"4강",type:'mc',q:"AI의 방대한 병렬 연산을 처리하는 데 가장 널리 쓰이며, 엔비디아(NVIDIA)가 시장을 주도하는 핵심 칩은?",options:["GPU","CPU","RAM","하드디스크"],answer:0,hint:"게임 그래픽 카드로도 잘 알려져 있습니다."},
+  {id:9,zone:2,ref:"Q43",type:'mc',q:"책 4강은 반도체 발전의 기준이 '무어의 법칙(인텔)'에서 무엇으로 옮겨갔다고 설명할까요?",options:["뉴턴의 법칙","황의 법칙(엔비디아)","파레토 법칙","머피의 법칙"],answer:1,hint:"엔비디아 CEO 젠슨 '황'의 이름을 땄습니다."},
+  {id:10,zone:2,ref:"Q36",type:'mc',q:"여러 분야를 넘나들며 깊은 지식을 갖춘 사람으로, 책이 'AI 시대에 왜 필요한가'를 묻는 융합형 인재는?",options:["폴리매스","스페셜리스트","얼리어답터","인플루언서"],answer:0,hint:"레오나르도 다빈치처럼 예술·과학·공학을 넘나든 사람이에요."},
+  {id:11,zone:2,ref:"Q31",type:'mc',q:"증기기관을 바탕으로 1차 산업혁명이 처음 시작된 나라는 어디일까요?",options:["영국","미국","중국","일본"],answer:0,hint:"제임스 와트의 나라, 런던이 수도예요."},
+  {id:12,zone:2,ref:"Q39",type:'ox',q:"스마트폰은 전화기에 카메라·음악 재생·인터넷 등 여러 기능이 '융합'되면서 탄생했다.",answer:true,hint:"책 4.3의 키워드는 '폰의 융합'이에요.",explain:"폰 → 스마트폰 → AI폰으로 이어지는 진화의 핵심은 기능의 융합입니다."},
+  {id:13,zone:2,ref:"Q42",type:'word',q:"전기가 통하는 도체와 통하지 않는 부도체의 중간 성질을 가져, AI 칩의 재료가 되는 것은?",word:"반도체",decoys:["전","자","칩"],hint:"'절반(半)'만 전기가 통하는 물체예요."},
+
+  /* ---------- 구역 3 · 5~6강: 소버린 AI → AI 전력 → SMR → 그린 AI / 피지컬·에이전틱 AI ---------- */
+  {id:14,zone:3,ref:"Q45",type:'mc',q:"국가가 외국 기술에 종속되지 않고 자국의 언어·문화·데이터를 지키기 위해 독자적으로 구축하는 AI는?",options:["오픈소스 AI","소버린 AI","글로벌 AI","퍼블릭 AI"],answer:1,hint:"'주권'을 뜻하는 영단어 Sovereign이 들어갑니다."},
+  {id:15,zone:3,ref:"Q52",type:'mc',q:"AI 데이터센터에 막대한 전력을 탄소 배출 없이 안정적으로 공급할 방안으로 주목받는 소형 원자로는?",options:["풍력 발전","화력 발전","SMR","수력 발전"],answer:2,hint:"Small Modular Reactor(소형 모듈형 원자로)의 약자입니다."},
+  {id:16,zone:3,ref:"Q59",type:'mc',q:"휴머노이드 로봇처럼 물리적인 몸을 갖고 현실 세계에서 직접 움직이며 일하는 AI를 무엇이라 할까요?",options:["소프트웨어 AI","메타버스 AI","피지컬 AI","클라우드 AI"],answer:2,hint:"'신체적, 물리적'을 뜻하는 영단어 Physical입니다."},
+  {id:17,zone:3,ref:"Q71",type:'mc',q:"질문에 답만 하는 생성형 AI를 넘어, 스스로 목표를 세우고 계획해 여러 작업을 직접 실행하는 AI는?",options:["에이전틱 AI","계산기 AI","아날로그 AI","오프라인 AI"],answer:0,hint:"에이전트(Agent)는 '대리인'이라는 뜻이에요."},
+  {id:18,zone:3,ref:"Q67",type:'ox',q:"온디바이스 AI는 클라우드 서버를 거치지 않고 스마트폰 같은 기기 안에서 직접 AI를 실행하는 기술이다.",answer:true,hint:"On-Device = 기기 위에서!",explain:"책 6.3은 AI가 '클라우드에서 온디바이스로' 옮겨 오고 있다고 설명합니다."},
+  {id:19,zone:3,ref:"Q54",type:'ox',q:"AI 데이터센터는 전기만 쓸 뿐, 물은 거의 사용하지 않는다.",answer:false,hint:"뜨거워진 서버를 무엇으로 식힐까요?",explain:"서버 열을 식히는 데 막대한 냉각수가 쓰여 '물 먹는 AI'와 환경불평등 문제가 제기됩니다."},
+  {id:20,zone:3,ref:"5.3",type:'word',q:"책 5.3의 제목을 완성하세요. \"사람은 밥과 물을 먹고, AI는 ○○과 물을 먹고 산다\"",word:"전기",decoys:["석","유","빛"],hint:"데이터센터가 엄청나게 소비하는 에너지예요."},
+
+  /* ---------- 구역 4 · 7~8강: 일자리 혁명 → 하이프 사이클 / 프롬프트 → 저작권 → 멀티모달 → 바이브코딩 ---------- */
+  {id:21,zone:4,ref:"Q91",type:'mc',q:"생성형 AI에게 원하는 결과를 얻기 위해 사람이 입력하는 '명령어'나 '질문'을 무엇이라고 부를까요?",options:["알고리즘","파라미터","프롬프트","인덱스"],answer:2,hint:"'○○○ 엔지니어링'이라는 직업도 생겨났습니다."},
+  {id:22,zone:4,ref:"Q84",type:'mc',q:"새 기술에 대한 기대가 정점까지 치솟았다가 '환멸의 골짜기'를 거쳐 안정기에 이른다는 기술 성숙도 모델은?",options:["하이프 사이클","무어의 법칙","롱테일 법칙","나비 효과"],answer:0,hint:"Hype는 '과대광고, 과장된 기대'라는 뜻이에요."},
+  {id:23,zone:4,ref:"Q101",type:'mc',q:"복잡한 문법을 외우지 않고, 자연어 대화와 직관적인 감각으로 AI와 협업하여 프로그램을 만드는 방식은?",options:["하드코딩","바이브코딩","기계어 코딩","스크립트 작성"],answer:1,hint:"'분위기, 느낌'을 뜻하는 신조어 Vibe입니다."},
+  {id:24,zone:4,ref:"Q95",type:'mc',q:"사람의 창작적 기여 없이 AI가 혼자 만든 결과물의 저작권, 현재 우리나라와 미국 등은 어떻게 보고 있을까요?",options:["원칙적으로 저작권을 인정하기 어렵다","AI에게 저작권을 준다","누구나 영원히 독점할 수 있다","가장 먼저 퍼뜨린 사람이 갖는다"],answer:0,hint:"저작권은 '인간'의 창작물을 보호하는 제도예요."},
+  {id:25,zone:4,ref:"Q93",type:'ox',q:"책은 'AI 시대에 질문이 중요한 이유는 문제를 찾는 사람이 답을 가지고 있기 때문'이라고 강조한다.",answer:true,hint:"이 책은 178개의 소제목이 모두 '질문'이에요.",explain:"답은 AI가 내놓지만, 무엇을 물을지 '문제를 찾는 힘'은 인간에게 있습니다."},
+  {id:26,zone:4,ref:"Q97",type:'word',q:"텍스트·이미지·음성·영상 등 여러 형태의 정보를 함께 이해하고 만들어내는 AI, '○○○○ AI'를 완성하세요.",word:"멀티모달",decoys:["싱","글","텍"],hint:"Multi(여러 개) + Modal(형태)"},
+
+  /* ---------- 구역 5 · 9~10강: 1인 미디어 → 숏폼 → 알고리즘 / 중독 스펙트럼 → VDT 증후군 → 생체시계 ---------- */
+  {id:27,zone:5,ref:"Q122",type:'mc',q:"숏폼 영상을 끝없이 넘겨보며 즉각적인 자극에 빠져드는 현상과 관련된, '보상'을 느끼게 하는 신경전달물질은?",options:["멜라토닌","도파민","인슐린","헤모글로빈"],answer:1,hint:"책 10.2의 키워드 '○○○네이션'에도 들어가요."},
+  {id:28,zone:5,ref:"Q133",type:'mc',q:"잠자리에서 스마트폰 빛에 노출되면 분비가 억제되어 생체시계를 흐트러뜨리는 수면 호르몬은?",options:["아드레날린","멜라토닌","세로토닌","엔도르핀"],answer:1,hint:"어두워지면 분비되는 '수면 유도' 호르몬입니다."},
+  {id:29,zone:5,ref:"Q130",type:'mc',q:"컴퓨터·스마트폰 화면을 오래 볼 때 생기는 눈의 피로, 목·어깨 통증, 두통 등을 묶어 부르는 말은?",options:["VDT 증후군","번아웃 증후군","피터팬 증후군","리플리 증후군"],answer:0,hint:"Visual Display Terminal(영상 표시 단말기)의 약자예요."},
+  {id:30,zone:5,ref:"Q114",type:'mc',q:"유튜브 쇼츠·릴스·틱톡처럼 스마트폰을 세워서 보는 '세로 미디어' 형식의 짧은 영상을 무엇이라 할까요?",options:["숏폼","극장 영화","라디오","종이 신문"],answer:0,hint:"Short(짧은) + Form(형식)"},
+  {id:31,zone:5,ref:"Q124",type:'ox',q:"짧고 강한 자극이 끝없이 이어지는 숏폼은 일반 영상보다 집중력과 뇌에 더 해로울 수 있다.",answer:true,hint:"책 10.3에는 '숏폼이 더 해로운 이유'라는 질문이 있어요.",explain:"숏폼은 빠른 보상이 반복되어 도파민 중독과 집중력 저하를 더 쉽게 일으킬 수 있습니다."},
+  {id:32,zone:5,ref:"Q127",type:'word',q:"길을 걸으며 스마트폰만 보느라 주변을 살피지 못하는 사람, '스마트폰 + 좀비'의 합성어는?",word:"스몸비",decoys:["폰","좀","빅"],hint:"스마트폰의 '스'+ 좀비의 '몸비'"},
+
+  /* ---------- 구역 6 · 11강: AI 권력 → 가짜뉴스 → 확증편향 → 딥페이크 → 피싱 → 방어 문해력 ---------- */
+  {id:33,zone:6,ref:"Q138",type:'mc',q:"알고리즘이 내가 좋아하는 정보만 계속 추천해, 반대되는 정보로부터 고립되는 현상을 무엇이라 할까요?",options:["필터버블","방화벽","딥웹","네트워크 오류"],answer:0,hint:"걸러진(Filter) 정보의 거품(Bubble) 속에 갇혀요."},
+  {id:34,zone:6,ref:"Q139",type:'mc',q:"자신의 생각과 일치하는 정보만 받아들이고, 반대되는 정보는 무시하는 심리적 경향은?",options:["확증편향","집단지성","역지사지","메타인지"],answer:0,hint:"이미 '확'신한 것을 '증'명해 주는 정보만 찾아요."},
+  {id:35,zone:6,ref:"Q143",type:'mc',q:"AI 딥러닝으로 특정 인물의 얼굴이나 음성을 합성해, 현실과 구분이 안 될 만큼 진짜처럼 조작하는 기술은?",options:["딥페이크","블록체인","크롤링","렌더링"],answer:0,hint:"Deep learning + Fake의 합성어입니다."},
+  {id:36,zone:6,ref:"Q146",type:'mc',q:"다음 중 딥페이크 영상을 의심해볼 수 있는 관찰 포인트가 아닌 것은?",options:["눈 깜빡임이 부자연스럽거나 거의 없다.","손가락 개수나 귀걸이 모양이 이상하다.","영상의 재생 시간이 3분을 넘는다.","목과 턱 경계의 피부 톤이 어색하게 번져 있다."],answer:2,hint:"재생 시간이 길다고 가짜 영상인 것은 아닙니다.",df:true},
+  {id:37,zone:6,ref:"Q141",type:'mc',q:"'개인정보(Private data)'와 '낚시(Fishing)'를 합친 말로, 가짜 문자·메일로 정보를 빼내는 사기 수법은?",options:["피싱","크롤링","스트리밍","해시태그"],answer:0,hint:"정보를 '낚아' 갑니다. 전화로 하면 '보이스○○'!"},
+  {id:38,zone:6,ref:"Q138",type:'ox',q:"생각이 비슷한 사람들끼리만 소통하면서 자기 의견이 메아리처럼 증폭·강화되는 현상을 '에코체임버'라고 한다.",answer:true,hint:"Echo는 '메아리', Chamber는 '방'이에요.",explain:"책 11.2는 필터버블과 에코체임버를 함께 다룹니다."},
+  {id:39,zone:6,ref:"Q146",type:'ox',q:"딥페이크 성착취물은 직접 만들지 않고 단순히 소지하거나 시청만 해도 처벌받을 수 있다.",answer:true,hint:"2024년 성폭력처벌법 개정 내용을 떠올려 보세요.",explain:"법 개정으로 딥페이크 성착취물의 소지·구입·저장·시청도 처벌 대상입니다."},
+  {id:40,zone:6,ref:"Q145",type:'word',q:"사실이 아닌 내용을 언론 보도처럼 그럴듯하게 꾸며 퍼뜨리는 거짓 정보, 책 11.4에서 식별법을 배우는 이것은?",word:"가짜뉴스",decoys:["진","실","속"],hint:"Fake News를 우리말로!"},
+
+  /* ---------- 구역 7 · 12~13강: AI 윤리 → AI 기본법 → 자기결정권 / 문화강국 → 균형 → 3역 → 333 학습 전략 → 신뢰 ---------- */
+  {id:41,zone:7,ref:"Q150",type:'mc',q:"자율주행차가 사고 직전 승객과 보행자 중 누구를 구할지 선택해야 하는, '생과 사를 결정하는 AI 딜레마'의 대표 사례는?",options:["트롤리 딜레마","몬티 홀 문제","죄수의 딜레마","제논의 역설"],answer:0,hint:"전차(Trolley)의 선로를 바꾸는 문제입니다."},
+  {id:42,zone:7,ref:"Q149",type:'mc',q:"AI가 학습 데이터 속 편견을 그대로 배워 특정 성별이나 인종을 차별하는 결과를 내는 문제는?",options:["AI 편향성","과열 현상","자동 업데이트","로딩 지연"],answer:0,hint:"한쪽으로 '치우침'을 뜻하는 영어 Bias입니다."},
+  {id:43,zone:7,ref:"Q154",type:'mc',q:"EU AI법에 이어 제정되어 2026년 1월부터 시행 중인 우리나라의 AI 관련 기본 법률은?",options:["AI 기본법","도로교통법","식품위생법","전자상거래법"],answer:0,hint:"AI에 관한 가장 '기본'이 되는 법이에요."},
+  {id:44,zone:7,ref:"Q171",type:'mc',q:"책 13강이 AI 문해력·문화력의 기본자세로 제안하는 '3역'에 해당하지 않는 것은?",options:["역발상","역지사지","역자세","역주행"],answer:3,hint:"3역은 생각·입장·자세를 뒤집어 보는 것이에요."},
+  {id:45,zone:7,ref:"Q175",type:'mc',q:"책이 제안하는 'AI 문해력·문화력 333 학습 전략'의 세 가지 전략이 아닌 것은?",options:["선택 학습 전략","질문 학습 전략","문화 학습 전략","암기 학습 전략"],answer:3,hint:"이 책은 '외우기'보다 '왜?'라고 묻는 힘을 강조해요."},
+  {id:46,zone:7,ref:"Q4",type:'mc',q:"책이 'AI 문화력'의 근거로 인용한 '문화강국론'. 『백범일지』에서 '높은 문화의 힘'을 소원한 인물은?",options:["백범 김구","세종대왕","이순신","안중근"],answer:0,hint:"호가 '백범(白凡)'인 독립운동가예요."},
+  {id:47,zone:7,ref:"Q161",type:'mc',q:"군사력·경제력 같은 하드파워와 달리, 문화와 가치의 매력으로 다른 나라의 마음을 움직이는 힘은?",options:["소프트파워","원자력","마력","중력"],answer:0,hint:"K-팝, K-드라마가 세계를 움직이는 힘!"},
+  {id:48,zone:7,ref:"Q158",type:'mc',q:"다음 중 AI 윤리를 실천하는 '디지털 시민'의 자세가 아닌 것은?",options:["AI가 쓴 내용의 사실 여부를 교차 검증한다.","타인의 개인정보를 프롬프트에 함부로 넣지 않는다.","AI가 쓴 답변을 내가 쓴 것처럼 과제로 낸다.","AI가 편향된 말을 하지 않는지 비판적으로 살핀다."],answer:2,hint:"정직성과 연구 윤리를 지켜야 합니다."},
+  {id:49,zone:7,ref:"Q155",type:'ox',q:"AI 챗봇 '이루다'는 혐오 발언과 개인정보 처리 문제로 논란이 되어 서비스가 중단된 적이 있다.",answer:true,hint:"책 12.3은 '이루다 사건'을 일상 속 AI 윤리 사례로 다뤄요.",explain:"2021년 이루다 사건은 AI 윤리와 개인정보 자기결정권의 중요성을 일깨웠습니다."},
+  {id:50,zone:7,ref:"12강",type:'word',q:"인공지능을 개발하고 사용할 때 사람이 지켜야 할 도덕적 원칙, 'AI ○○'를 완성하세요.",word:"윤리",decoys:["법","칙","규"],hint:"사람으로서 마땅히 지켜야 할 도리예요."},
+  {id:51,zone:7,ref:"Q178",type:'word',q:"책의 마지막 질문! AI가 대체할 수 없는 인간의 가치로 강조하는 한 글자 '信'의 뜻은?",word:"신뢰",decoys:["속","도","력"],hint:"믿고 의지한다는 뜻의 두 글자예요."},
+];
+
+/* =========================================================
+   2. 사운드 (Web Audio API, 외부 파일 없음)
+========================================================= */
+let AC=null, muted=false;
+function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function tone(freq,dur=.1,type='square',vol=.08,delay=0,slideTo=null){
+  const c=ac(); if(!c||muted)return;
+  const t=c.currentTime+delay, o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  if(slideTo)o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+.02);
+}
+const SFX={
+  tap(){tone(1320,.05,'square',.05);},
+  key(){tone(880,.04,'square',.05);tone(1760,.03,'sine',.03,.02);},
+  type(){tone(2000+Math.random()*600,.015,'square',.015);},
+  snip(){tone(3200,.04,'square',.08);tone(180,.12,'sawtooth',.08,.03,60);},
+  swoosh(){tone(900,.18,'sine',.07,0,200);},
+  correct(){[523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',.12,i*.09));tone(1568,.35,'sine',.06,.36);},
+  wrong(){tone(140,.28,'sawtooth',.14);tone(110,.35,'sawtooth',.14,.3);},
+  siren(){tone(600,.4,'sawtooth',.06,0,1200);tone(1200,.4,'sawtooth',.06,.4,600);},
+  hint(){tone(700,.08,'sine',.08);tone(1050,.12,'sine',.08,.08);},
+  unlock(){tone(300,.25,'sawtooth',.05,0,1800);[1047,1319,1568].forEach((f,i)=>tone(f,.12,'square',.05,.25+i*.07));},
+  fanfare(){const n=[523,523,523,659,784,659,784,1047];const d=[0,.12,.24,.36,.6,.84,.96,1.1];n.forEach((f,i)=>{tone(f,.22,'triangle',.13,d[i]);tone(f/2,.22,'square',.04,d[i]);});tone(1047,.9,'sine',.08,1.3);},
+};
+
+/* =========================================================
+   3. 유틸 & 이펙트
+========================================================= */
+const $=s=>document.querySelector(s);
+const app=$('#app');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const pad=n=>String(n).padStart(2,'0');
+const fmtTime=d=>`${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const fmtDur=ms=>{const s=Math.floor(ms/1000);return `${pad(Math.floor(s/60))}:${pad(s%60)}`;};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const vibrate=p=>{try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}};
+const inside=(el,ev)=>{const r=el.getBoundingClientRect();return ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom;};
+
+let typeToken=0;
+async function typeText(el,text,speed=22,sound=true){
+  const my=++typeToken; el.textContent=''; el.classList.add('caret');
+  for(let i=0;i<text.length;i++){
+    if(my!==typeToken){el.textContent=text;break;}
+    el.textContent+=text[i]; if(sound&&i%2===0)SFX.type(); await sleep(speed);
+  }
+  if(my===typeToken)el.classList.remove('caret');
+}
+function skipTyping(){typeToken++;document.querySelectorAll('.caret').forEach(e=>e.classList.remove('caret'));}
+
+function redFlash(){const f=$('#flash');f.classList.remove('flash-on');void f.offsetWidth;f.classList.add('flash-on');}
+function shakeEl(el){if(!el)return;el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');}
+
+/* Confetti (순수 Canvas) */
+const cv=$('#confetti'),cx=cv.getContext('2d');let parts=[],confRAF=null;
+function resizeCv(){cv.width=innerWidth*devicePixelRatio;cv.height=innerHeight*devicePixelRatio;cx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
+addEventListener('resize',resizeCv);resizeCv();
+function confetti(n=90,big=false){
+  const cols=['#06b6d4','#10b981','#a855f7','#f472b6','#facc15','#a5f3fc'];
+  for(let i=0;i<n;i++){
+    const fromSide=big&&i%2;
+    parts.push({x:fromSide?(i%4<2?0:innerWidth):innerWidth/2+(Math.random()-.5)*80,y:fromSide?innerHeight*.7:innerHeight*.38,
+      vx:fromSide?(i%4<2?1:-1)*(4+Math.random()*7):(Math.random()-.5)*12,vy:-(6+Math.random()*(big?12:8)),
+      s:4+Math.random()*6,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:cols[i%cols.length],life:0,shape:Math.random()<.3?'c':'r'});
+  }
+  if(!confRAF)loopConf();
+}
+function loopConf(){
+  cx.clearRect(0,0,innerWidth,innerHeight);
+  parts.forEach(p=>{p.vy+=.28;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;p.life++;
+    cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.shadowColor=p.c;cx.shadowBlur=8;
+    if(p.shape==='c'){cx.beginPath();cx.arc(0,0,p.s/2,0,7);cx.fill();}else cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);cx.restore();});
+  parts=parts.filter(p=>p.y<innerHeight+40&&p.life<300);
+  confRAF=parts.length?requestAnimationFrame(loopConf):(cx.clearRect(0,0,innerWidth,innerHeight),null);
+}
+
+/* =========================================================
+   4. 위조 방지 코드 — 등급이 코드 안에 숨겨져 있음 (교사용 검증기로 확인)
+   형식: AI-2026-XXXX  (난수 2 + 등급 암호 1 + 검증문자 1)
+========================================================= */
+const CS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 혼동 문자(0,O,1,I) 제외 32자
+const SALT=[7,13,29];
+function checkChar(a){let s=11;a.forEach((ch,i)=>{s=(s*31+CS.indexOf(ch)*SALT[i]+i*5)%997;});return CS[s%32];}
+// 형식: 난수 1 + 회차 암호 1 + 등급 암호 1 + 검증문자 1
+function genCode(gi,att){const r=new Uint8Array(3);crypto.getRandomValues(r);
+  const a=[CS[r[0]%32],CS[(Math.min(Math.max(att||1,1),4)-1)*8+r[1]%8],CS[gi*8+r[2]%8]];return `AI-2026-${a.join('')}${checkChar(a)}`;}
+function verifyCode(code){
+  const m=String(code).toUpperCase().replace(/\s/g,'').match(/^AI-?2026-?([A-Z2-9]{4})$/);if(!m)return null;
+  const a=m[1].split('');if(a.some(c=>CS.indexOf(c)<0))return null;
+  if(checkChar(a.slice(0,3))!==a[3])return null;
+  return {G:GRADES[Math.floor(CS.indexOf(a[2])/8)],att:Math.floor(CS.indexOf(a[1])/8)+1};
+}
+
+/* 도전 기록 (이 기기에 저장) — 도전 횟수 제한 & 최고 등급 관리 */
+const STORE_KEY='agi_cbhs_2026';
+let memRec=null; // 저장소가 막힌 브라우저(사생활 보호 모드 등)용 대체 기록
+function loadRec(){let r=null;try{r=JSON.parse(localStorage.getItem(STORE_KEY));}catch(e){r=memRec&&JSON.parse(memRec);}
+  r=r&&Array.isArray(r.runs)?r:{used:0,runs:[],sid:'',sname:'',final:false};
+  if(r.used>=MAX_ATTEMPTS)r.final=true; // 기회를 다 쓰면(포기 포함) 자동 확정
+  return r;}
+function saveRec(r){memRec=JSON.stringify(r);try{localStorage.setItem(STORE_KEY,memRec);}catch(e){}}
+function clearRec(){memRec=null;try{localStorage.removeItem(STORE_KEY);}catch(e){}}
+function bestRun(r){return r.runs.reduce((b,x)=>(!b||x.gi<b.gi||(x.gi===b.gi&&x.sc>b.sc))?x:b,null);}
+const leftOf=r=>r.final?0:Math.max(0,MAX_ATTEMPTS-r.used);
+
+/* =========================================================
+   5. 게임 상태 & 출제
+========================================================= */
+const GIMMICK_INFO={
+  choice:{label:'🔘 선택형 프로토콜'},
+  keypad:{label:'🔢 키패드 코드 입력'},
+  slider:{label:'🎚️ 주파수 스캐너'},
+  wire:  {label:'✂️ 회로 절단'},
+  hold:  {label:'👆 지문 인증 (꾹 누르기)'},
+  drag:  {label:'🔌 보안 키 삽입'},
+  target:{label:'🐞 버그 사냥'},
+  timing:{label:'⏱️ 레이저 타이밍'},
+  swipe: {label:'🃏 진실/거짓 스와이프'},
+  word:  {label:'🧩 암호 조각 맞추기'},
+};
+const MC_GIMMICKS=['choice','keypad','slider','wire','hold','drag','target','timing'];
+const SHORT_ONLY=['target','drag']; // 보기가 짧은 문제만 가능
+const isShort=q=>q.options.every(o=>o.length<=16);
+
+let S={};
+let lockTimer=null,hintTimer=null,clockTimer=null,elapsedTimer=null,gLoop=null;
+function stopLoop(){if(gLoop){cancelAnimationFrame(gLoop);gLoop=null;}}
+
+function prepare(q,g){
+  if(q.type==='mc'){const order=shuffle([0,1,2,3]);return {...q,gimmick:g,opts:order.map(k=>q.options[k]),ans:order.indexOf(q.answer)};}
+  if(q.type==='ox')return {...q,gimmick:g,ans:q.answer};
+  return {...q,gimmick:g,ans:q.word,chips:shuffle([...q.word,...q.decoys])};
+}
+
+function newGame(){
+  // 매 판마다 10가지 해제 방식 중 7가지를 겹치지 않게 랜덤 배치
+  const plan=shuffle(['swipe','word',...shuffle(MC_GIMMICKS).slice(0,MISSION_COUNT-2)]);
+  const zs=MISSION_COUNT>=zones.length?zones:shuffle(zones).slice(0,MISSION_COUNT).sort((a,b)=>a.id-b.id);
+  const list=zs.map((z,k)=>{
+    const g=plan[k%plan.length];
+    let pool;
+    if(g==='swipe')pool=quizData.filter(q=>q.zone===z.id&&q.type==='ox');
+    else if(g==='word')pool=quizData.filter(q=>q.zone===z.id&&q.type==='word');
+    else{pool=quizData.filter(q=>q.zone===z.id&&q.type==='mc');
+      if(SHORT_ONLY.includes(g)){const sh=pool.filter(isShort);if(sh.length)pool=sh;else return prepare(pick(pool),'choice');}}
+    return prepare(pick(pool),g);
+  });
+  S={list,idx:0,mistakes:0,hints:0,perfect:0,triedWrong:false,hintUsedHere:false,start:Date.now(),end:null,locked:false,hintCooldownUntil:0,attempt:0};
+  const rec=loadRec();rec.used++;saveRec(rec);S.attempt=rec.used; // 시작하는 순간 1회 차감 (새로고침·포기 포함)
+}
+
+function calcScore(){const sc=Math.max(0,100-S.mistakes*10-S.hints*5);const gi=GRADES.findIndex(x=>sc>=x.min);return {sc,gi,G:GRADES[gi]};}
+
+/* =========================================================
+   6. 화면: 부팅 인트로
+========================================================= */
+function argosSVG(size=110,color='#ef4444'){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 120 120">
+    <g class="rot"><circle cx="60" cy="60" r="54" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="6 8" opacity=".7"/></g>
+    <circle cx="60" cy="60" r="44" fill="none" stroke="${color}" stroke-width="2" opacity=".5"/>
+    <g class="eye"><ellipse cx="60" cy="60" rx="36" ry="20" fill="rgba(15,23,42,.9)" stroke="${color}" stroke-width="2.5"/>
+    <circle cx="60" cy="60" r="12" fill="${color}" style="filter:drop-shadow(0 0 10px ${color})"/>
+    <circle cx="60" cy="60" r="4" fill="#0f172a"/><circle cx="64" cy="56" r="2" fill="#fff" opacity=".8"/></g></svg>`;
+}
+
+async function screenBoot(){
+  app.innerHTML=`
+  <div class="fade-in flex flex-col min-h-[92vh]">
+    <div class="flex items-center justify-between text-[11px] font-mono2 text-cyan-400/70 mb-3">
+      <span>CORE//SECURE-TERMINAL v26.10</span><span id="bootClock"></span>
+    </div>
+    <div class="panel rounded-2xl p-4 relative overflow-hidden flex-1 cursor-pointer" id="bootPanel">
+      <div class="scanbar"></div>
+      <div class="flex justify-center my-2">${argosSVG(120)}</div>
+      <pre id="bootLog" class="font-mono2 text-[12.5px] leading-relaxed whitespace-pre-wrap text-emerald-300"></pre>
+    </div>
+    <p class="text-center text-[11px] text-slate-500 mt-2">화면을 탭하면 빠르게 넘어갑니다</p>
+    <button id="bootGo" class="btn-solid rounded-2xl p-4 mt-3 text-lg font-orb opacity-0 pointer-events-none transition-opacity">▶ 접속 시작</button>
+  </div>`;
+  const tick=()=>{const e=$('#bootClock');if(e)e.textContent=fmtTime(new Date()).slice(11);};tick();
+  clearInterval(clockTimer);clockTimer=setInterval(tick,1000);
+  const lines=[
+    `> 2026년, ${SCHOOL} 비밀 AI 연구소 [CORE]`,
+    "> 중앙 인공지능 ARGOS ... 상태: ⚠ 통제 불능",
+    "> !!! LOCKDOWN PROTOCOL 발동 — 모든 출입문 봉쇄 !!!",
+    "",
+    "ARGOS: \"인간이여, 너희는 나를 이해하지 못한다.\"",
+    "ARGOS: \"내 보안 프로토콜을 풀 수 있다면 문을 열어주지.\"",
+    "",
+    "> 시스템 권한 복구 키: 김경수 교수의 《AI 읽는 힘, 보는 힘》",
+    "> 필요 능력: AI 문해력(해석하는 힘) + AI 문화력(발산하는 힘)",
+    `> ${MISSION_COUNT}개의 보안 프로토콜이 감지되었습니다.`,
+    "> 견습 화이트해커님, 접속을 승인합니다_",
+  ];
+  const log=$('#bootLog');let fast=false;
+  $('#bootPanel').onclick=()=>{fast=true;skipTyping();};
+  for(const l of lines){
+    const span=document.createElement('div');
+    if(l.includes('!!!'))span.className='text-red-400 glow-r font-bold';
+    else if(l.startsWith('ARGOS'))span.className='text-pink-300';
+    log.appendChild(span);
+    if(fast){span.textContent=l;continue;}
+    await typeText(span,l,18);
+    if(l.includes('!!!')){SFX.siren();redFlash();vibrate([80,60,80]);}
+    await sleep(fast?0:160);
+  }
+  const b=$('#bootGo');b.classList.remove('opacity-0','pointer-events-none');b.classList.add('pulse-ring');
+  b.onclick=()=>{SFX.unlock();screenMenu();};
+}
+
+/* =========================================================
+   7. 화면: 메뉴
+========================================================= */
+let logoTaps=0,logoTapT=0;
+function screenMenu(){
+  clearInterval(clockTimer);stopLoop();
+  const rec=loadRec(),left=leftOf(rec),best=bestRun(rec),BG=best?GRADES[best.gi]:null;
+  app.innerHTML=`
+  <div class="fade-in pb-6">
+    <div class="text-center mt-2">
+      <p class="text-[12px] font-bold text-slate-300">🏫 ${SCHOOL} · ${EVENT_NAME}</p>
+      <div id="logo" class="inline-block select-none mt-2">${argosSVG(84,'#06b6d4')}</div>
+      <p class="font-orb text-cyan-400 text-xs tracking-[.3em] mt-1">PROJECT AGI</p>
+      <h1 class="text-[26px] font-black leading-tight mt-1 glow-c">잠긴 연구소의 문을 열어라!</h1>
+      <p class="text-slate-400 text-sm mt-2">7개 구역의 보안 프로토콜을 해제하고 탈출하세요</p>
+    </div>
+
+    <div class="rounded-2xl border border-amber-400/60 bg-amber-400/10 p-4 mt-5">
+      <p class="font-black text-amber-300">📢 참여 안내</p>
+      <ul class="text-[13px] text-amber-50 mt-2 space-y-1.5 leading-relaxed">
+        <li>🎟️ 도전 기회는 <b class="text-amber-300">1인당 ${MAX_ATTEMPTS}번</b>이에요.</li>
+        <li>🏆 ${MAX_ATTEMPTS}번 중 <b class="text-amber-300">가장 높은 등급</b>으로 선물을 받아요.</li>
+        <li>🎁 선물은 <b class="text-amber-300">한 번만</b> 받을 수 있어요. 도전을 마치면 <b>'도전 종료'</b>를 누르고 인증서를 <b>정보실 선생님</b>께 보여주세요.</li>
+        <li>⚠️ 시작 버튼을 누르면 1회가 사용돼요. 중간에 포기하거나 새로고침해도 1회로 처리돼요.</li>
+      </ul>
+      <div class="flex items-center justify-between mt-3 rounded-xl bg-black/30 px-3 py-2">
+        <span class="text-[12px] text-slate-300">남은 도전 기회</span>
+        <span class="flex items-center gap-1.5">${Array.from({length:MAX_ATTEMPTS},(_,i)=>`<span class="w-4 h-4 rounded-full ${i<left?'bg-emerald-400':'bg-slate-700'}" ${i<left?'style="box-shadow:0 0 8px #10b981"':''}></span>`).join('')}
+          <b class="font-orb ml-1 ${left?'text-emerald-300':'text-red-400'}">${left}/${MAX_ATTEMPTS}</b></span>
+      </div>
+    </div>
+
+    ${best?`<div class="panel rounded-2xl p-4 mt-3 flex items-center gap-3">
+      <span class="font-orb font-black text-4xl" style="color:${BG.color};text-shadow:0 0 12px ${BG.color}">${BG.g}</span>
+      <div class="flex-1 text-[13px]"><p class="text-slate-400 text-[11px]">내 최고 기록${rec.final?' · 🔒 최종 확정':''}</p><p class="font-bold">${BG.title} · ${best.sc}점</p><p class="text-slate-300">${BG.prize}</p></div>
+      <button id="myCertBtn" class="btn-neon rounded-xl px-3 py-2 text-[12px] font-bold text-cyan-200">🎁 인증서<br>보기</button>
+    </div>`:''}
+
+    <div class="grid grid-cols-7 gap-1.5 mt-4">
+      ${zones.map(z=>`<div class="panel rounded-xl py-2 text-center"><div class="text-lg">${z.icon}</div><div class="text-[9px] font-mono2 text-cyan-300/80">Z${z.id}</div></div>`).join('')}
+    </div>
+
+    ${left>0?`<button id="startBtn" class="btn-solid w-full rounded-2xl p-5 mt-4 text-left pulse-ring">
+      <div class="flex items-center justify-between"><span class="text-xl">⚡ 보안 해제 미션 시작</span><span class="font-orb text-sm">${MAX_ATTEMPTS-left+1}회차</span></div>
+      <div class="text-[13px] font-medium opacity-80 mt-0.5">${quizData.length}문항 중 ${MISSION_COUNT}문제 랜덤 출제 · 약 5분 · 남은 기회 ${left}번</div>
+    </button>`:`<div class="w-full rounded-2xl p-5 mt-4 text-center border border-red-500/60 bg-red-500/10">
+      <p class="text-lg font-black text-red-300">🔒 도전이 종료되었어요</p>
+      <p class="text-[13px] text-slate-300 mt-1">${best?'위의 인증서를 정보실 선생님께 보여주고 선물을 받으세요!':'도전 기회를 모두 사용했어요.'}</p></div>`}
+
+    <div class="panel rounded-2xl p-4 mt-5">
+      <p class="font-bold text-cyan-300 mb-2">🎁 탈출 등급 & 보상</p>
+      <p class="text-[12px] text-slate-400 mb-2">점수 = 100 − 오답×10 − 힌트×5</p>
+      <div class="space-y-1.5">
+        ${GRADES.map((x,i)=>`<div class="flex items-center gap-3 rounded-xl bg-black/30 px-3 py-2">
+          <span class="font-orb font-black text-xl w-6 text-center" style="color:${x.color};text-shadow:0 0 10px ${x.color}">${x.g}</span>
+          <span class="text-[13px] flex-1">${x.title}<br><span class="text-slate-500 text-[11px]">${i===0?'만점(100점)':`${x.min}점 이상`}</span></span>
+          <span class="text-[13px] font-bold text-right">${x.prize}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="panel rounded-2xl p-4 mt-4 text-[13px] text-slate-300 leading-relaxed">
+      <p class="font-bold text-cyan-300 mb-2">📡 작전 브리핑 — 10가지 해제 장치</p>
+      <div class="grid grid-cols-2 gap-1.5 text-[12px] mb-3">
+        ${Object.values(GIMMICK_INFO).map(v=>`<div class="rounded-lg bg-black/30 px-2 py-1.5">${v.label.replace(' (꾹 누르기)','')}</div>`).join('')}
+      </div>
+      <ul class="space-y-1">
+        <li>🚨 오답 시 ARGOS가 <b class="text-red-400">${WRONG_LOCK_SEC}초간 시스템을 잠급니다.</b></li>
+        <li>💡 힌트는 언제든 열람 가능 (단, 점수 −5점)</li>
+        <li>🔀 문제·보기·해제 장치가 매번 바뀌어요. 친구 답 베끼기 불가!</li>
+      </ul>
+    </div>
+    <div class="flex justify-center mt-4">
+      <button id="muteBtn" class="btn-neon rounded-xl px-4 py-2 text-sm">${muted?'🔇 소리 꺼짐':'🔊 소리 켜짐'}</button>
+    </div>
+  </div>`;
+  if($('#startBtn'))$('#startBtn').onclick=()=>{
+    if(!confirm(`${MAX_ATTEMPTS-left+1}회차 도전을 시작할까요?\n시작하면 도전 기회 1회가 사용됩니다. (남은 기회 ${left}번 → ${left-1}번)`))return;
+    SFX.unlock();newGame();screenQuestion();};
+  if($('#myCertBtn'))$('#myCertBtn').onclick=()=>{SFX.tap();screenCert();};
+  $('#muteBtn').onclick=e=>{muted=!muted;e.target.textContent=muted?'🔇 소리 꺼짐':'🔊 소리 켜짐';SFX.tap();};
+  // 교사용 숨은 검증기: 로고 5번 연속 탭
+  $('#logo').onclick=()=>{const n=Date.now();logoTaps=(n-logoTapT<600)?logoTaps+1:1;logoTapT=n;if(logoTaps>=5){logoTaps=0;teacherVerify();}};
+}
+
+/* =========================================================
+   8. 화면: 문제
+========================================================= */
+function screenQuestion(){
+  clearInterval(lockTimer);clearInterval(hintTimer);stopLoop();
+  const q=S.list[S.idx],z=zones[q.zone-1],total=S.list.length;
+  S.triedWrong=false;S.hintUsedHere=false;S.locked=false;
+  let gLabel=GIMMICK_INFO[q.gimmick].label;
+  if(q.df&&q.gimmick==='slider')gLabel='🎭 딥페이크 탐지 스캐너';
+  app.innerHTML=`
+  <div class="fade-in pb-6" id="qwrap">
+    <div class="flex items-center justify-between text-[11px] font-mono2 text-cyan-400/80">
+      <span>MISSION · PROTOCOL ${S.idx+1}/${total}</span>
+      <span>⏱ <span id="elapsed">00:00</span> · ❌ ${S.mistakes} · 💡 ${S.hints}</span>
+    </div>
+    <div class="flex gap-1 mt-2">${S.list.map((_,i)=>`<div class="h-2 flex-1 rounded-full ${i<S.idx?'bg-emerald-400':i===S.idx?'bg-cyan-400 animate-pulse':'bg-slate-800'}" ${i<S.idx?'style="box-shadow:0 0 8px #10b981"':''}></div>`).join('')}</div>
+
+    <div class="flex items-center gap-3 mt-4">
+      <div class="w-12 h-12 rounded-2xl panel flex items-center justify-center text-2xl">${z.icon}</div>
+      <div class="min-w-0">
+        <p class="text-[11px] font-mono2 text-red-400 glow-r">🔒 ${z.proto} · LOCKED</p>
+        <p class="font-bold text-[15px] truncate">구역 ${z.id}. ${z.name} <span class="text-slate-500 text-xs font-normal">(${z.lecture})</span></p>
+      </div>
+    </div>
+
+    <div class="panel rounded-2xl p-4 mt-3 relative overflow-hidden" id="qcard">
+      <div class="scanbar"></div>
+      <p class="text-[11px] font-mono2 text-emerald-400 mb-2">${gLabel}</p>
+      <p id="qtext" class="text-[17px] font-bold leading-relaxed min-h-[84px]"></p>
+    </div>
+
+    <div id="gimmick" class="mt-3"></div>
+
+    <div id="hintBox" class="hidden mt-3 rounded-2xl p-3 border border-amber-400/50 bg-amber-400/10 text-amber-200 text-sm pop"></div>
+    <div id="lockBox" class="hidden mt-3 rounded-2xl p-3 border border-red-500/70 bg-red-500/15 text-red-300 text-sm font-bold text-center"></div>
+
+    <div class="flex gap-2 mt-3">
+      <button id="hintBtn" class="btn-neon flex-1 rounded-2xl p-3 text-amber-300 font-bold text-sm">💡 힌트 열람 (−5점)</button>
+      <button id="quitBtn" class="btn-neon rounded-2xl px-4 p-3 text-slate-400 text-sm">↩ 포기</button>
+    </div>
+  </div>`;
+  const tickE=()=>{const e=$('#elapsed');if(e)e.textContent=fmtDur(Date.now()-S.start);};tickE();
+  clearInterval(elapsedTimer);elapsedTimer=setInterval(tickE,1000);
+  $('#qcard').onclick=skipTyping;
+  typeText($('#qtext'),(q.type==='ox'?'[참일까, 거짓일까?] ':'')+q.q,16);
+  renderGimmick(q);
+  updateHintBtn();
+  $('#hintBtn').onclick=()=>useHint(q);
+  $('#quitBtn').onclick=()=>{if(confirm('미션을 포기할까요?\n이번 도전은 기회 1회를 사용한 것으로 처리됩니다.')){clearInterval(elapsedTimer);stopLoop();screenMenu();}};
+}
+
+const numBadge=i=>`<span class="num">${i+1}</span>`;
+const optList=q=>`<div class="space-y-1.5">${q.opts.map((o,i)=>`<div class="opt rounded-xl px-3 py-2.5 border border-slate-700 bg-slate-900/60 flex gap-3 items-center text-[14px]" data-i="${i}">${numBadge(i)}<span>${esc(o)}</span></div>`).join('')}</div>`;
+
+/* ---------- 10가지 해제 장치 ---------- */
+const GIMMICKS={
+  /* 🔘 선택형 */
+  choice(q,g){
+    g.innerHTML=`<div class="space-y-2.5">${q.opts.map((o,i)=>`<button data-i="${i}" class="opt btn-neon w-full rounded-2xl p-4 text-left flex gap-3 items-start">${numBadge(i)}<span class="text-[15px] leading-snug">${esc(o)}</span></button>`).join('')}</div>`;
+    g.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{if(S.locked)return;SFX.tap();submit(+b.dataset.i,b);});
+  },
+  /* 🔢 키패드 */
+  keypad(q,g){
+    g.innerHTML=`${optList(q)}
+      <div class="panel rounded-2xl p-3 mt-3">
+        <div class="flex items-center justify-between rounded-xl bg-black/60 border border-cyan-500/40 px-4 py-3 mb-3">
+          <span class="text-[11px] font-mono2 text-slate-500">ACCESS CODE</span>
+          <span id="kpDisp" class="font-orb text-3xl text-cyan-300 glow-c tracking-[.3em]">_</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          ${[1,2,3,4].map(n=>`<button class="kp btn-neon rounded-xl py-4 font-orb text-2xl text-cyan-200" data-n="${n}">${n}</button>`).join('')}
+          <button class="kpc btn-neon rounded-xl py-4 text-red-300 font-bold">CLR</button>
+          <button class="kpe btn-solid rounded-xl py-4 font-orb">ENTER</button>
+        </div>
+      </div>`;
+    let val=null;const disp=$('#kpDisp');
+    const mark=()=>g.querySelectorAll('.opt').forEach(o=>o.classList.toggle('sel',+o.dataset.i===val));
+    g.querySelectorAll('.kp').forEach(b=>b.onclick=()=>{if(S.locked)return;SFX.key();vibrate(15);val=+b.dataset.n-1;disp.textContent=b.dataset.n;mark();});
+    g.querySelector('.kpc').onclick=()=>{SFX.tap();val=null;disp.textContent='_';mark();};
+    g.querySelector('.kpe').onclick=()=>{if(S.locked)return;if(val===null){shakeEl(disp.parentElement);SFX.wrong();return;}
+      submit(val,g.querySelector(`.opt[data-i="${val}"]`),()=>{val=null;disp.textContent='_';mark();});};
+  },
+  /* 🎚️ 슬라이더 스캐너 */
+  slider(q,g){
+    const df=!!q.df;
+    g.innerHTML=`
+      <div class="panel rounded-2xl p-4 relative overflow-hidden">
+        ${df?`<div class="flex justify-center mb-3"><svg width="120" height="120" viewBox="0 0 120 120">
+          <rect x="6" y="6" width="108" height="108" rx="14" fill="none" stroke="#06b6d4" stroke-dasharray="10 6" opacity=".7"/>
+          <circle cx="60" cy="52" r="26" fill="none" stroke="#a5f3fc" stroke-width="2"/>
+          <ellipse cx="50" cy="48" rx="4" ry="3" fill="#a5f3fc" class="eye"/><ellipse cx="70" cy="48" rx="4" ry="3" fill="#a5f3fc" class="eye"/>
+          <path d="M50 62 Q60 68 70 62" stroke="#a5f3fc" stroke-width="2" fill="none"/><path d="M38 90 Q60 74 82 90" stroke="#ef4444" stroke-width="2" fill="none" stroke-dasharray="3 3"/>
+          <line x1="10" y1="10" x2="110" y2="10" stroke="#10b981" stroke-width="2"><animate attributeName="y1" values="10;110;10" dur="2.4s" repeatCount="indefinite"/><animate attributeName="y2" values="10;110;10" dur="2.4s" repeatCount="indefinite"/></line>
+        </svg></div>`:''}
+        <p class="tip">${df?'슬라이더로 분석 항목을 맞추고 <b class="text-cyan-300">스캔 확정</b>을 누르세요':'다이얼을 밀어 정답 주파수에 맞추세요'}</p>
+        <div id="slOut" class="rounded-xl bg-black/60 border border-cyan-500/40 p-4 min-h-[86px] flex gap-3 items-center">
+          <span id="slNum" class="font-orb text-3xl text-cyan-300 glow-c">1</span><span id="slTxt" class="text-[15px] font-bold leading-snug"></span>
+        </div>
+        <input id="sl" type="range" min="1" max="4" step="1" value="1" class="cyber mt-5">
+        <div class="flex justify-between font-orb text-[11px] text-slate-500 mt-2 px-1"><span>CH-1</span><span>CH-2</span><span>CH-3</span><span>CH-4</span></div>
+        <button id="slGo" class="btn-solid w-full rounded-2xl p-4 mt-4 text-base">${df?'🔍 스캔 확정':'📡 주파수 고정'}</button>
+      </div>`;
+    const sl=$('#sl'),show=()=>{const i=+sl.value-1;$('#slNum').textContent=i+1;$('#slTxt').textContent=q.opts[i];};
+    sl.oninput=()=>{show();tone(400+sl.value*180,.06,'sine',.06);vibrate(8);};show();
+    $('#slGo').onclick=()=>{if(S.locked)return;submit(+sl.value-1,$('#slOut'));};
+  },
+  /* ✂️ 회로 절단 */
+  wire(q,g){
+    const cols=['#ef4444','#06b6d4','#facc15','#10b981'];
+    g.innerHTML=`<div class="panel rounded-2xl p-4">
+      <p class="tip">✂️ 정답이 적힌 회로선을 탭해서 <b class="text-red-300">절단</b>하세요! 잘못 끊으면 경보가 울립니다.</p>
+      <div class="space-y-3">${q.opts.map((o,i)=>`<button class="wire w-full text-left rounded-xl p-2 border border-transparent" data-i="${i}">
+        <div class="flex items-center gap-2 text-[14.5px] mb-2">${numBadge(i)}<span>${esc(o)}</span></div>
+        <div class="flex items-center"><span class="term"></span>
+          <span class="wl flex-1 h-[7px] rounded-l-full" style="background:${cols[i]};box-shadow:0 0 10px ${cols[i]}"></span>
+          <span class="wr flex-1 h-[7px] rounded-r-full" style="background:${cols[i]};box-shadow:0 0 10px ${cols[i]}"></span>
+          <span class="term"></span></div></button>`).join('')}</div></div>`;
+    g.querySelectorAll('.wire').forEach(w=>w.onclick=()=>{if(S.locked)return;w.classList.add('cut');SFX.snip();vibrate(30);
+      submit(+w.dataset.i,w,()=>w.classList.remove('cut'));});
+  },
+  /* 👆 지문 인증 (길게 누르기) */
+  hold(q,g){
+    g.innerHTML=`<p class="tip">👆 정답을 <b class="text-cyan-300">1초간 꾹 누르고</b> 있으면 지문 인증이 완료됩니다</p>
+      <div class="space-y-2.5">${q.opts.map((o,i)=>`<div class="hold noselect rounded-2xl p-4 border border-cyan-500/50 bg-cyan-500/5 relative overflow-hidden cursor-pointer" data-i="${i}" style="touch-action:none">
+        <div class="fill absolute inset-y-0 left-0 w-0 bg-gradient-to-r from-cyan-500/40 to-emerald-400/40"></div>
+        <div class="relative flex gap-3 items-center">${numBadge(i)}<span class="text-[15px] leading-snug flex-1">${esc(o)}</span><span class="text-2xl opacity-70">👆</span></div></div>`).join('')}</div>`;
+    g.querySelectorAll('.hold').forEach(el=>{
+      const fill=el.querySelector('.fill');let raf=null,t0=0,done=false,lastBeep=0;
+      el.oncontextmenu=e=>e.preventDefault();
+      const cancel=()=>{if(raf)cancelAnimationFrame(raf);raf=null;if(!done){fill.style.transition='width .2s';fill.style.width='0';}};
+      el.onpointerdown=e=>{if(S.locked||done)return;e.preventDefault();done=false;t0=performance.now();lastBeep=0;fill.style.transition='none';
+        const step=t=>{const p=Math.min(1,(t-t0)/1000);fill.style.width=p*100+'%';
+          if(t-lastBeep>110){tone(300+p*900,.05,'sine',.05);lastBeep=t;vibrate(10);}
+          if(p>=1){done=true;raf=null;submit(+el.dataset.i,el,()=>{done=false;fill.style.width='0';});return;}
+          raf=requestAnimationFrame(step);};
+        raf=requestAnimationFrame(step);};
+      el.onpointerup=el.onpointerleave=el.onpointercancel=cancel;
+    });
+  },
+  /* 🔌 보안 키 드래그 삽입 */
+  drag(q,g){
+    const portHTML=`<div class="text-3xl">🔌</div><div class="text-[13px] mt-1">정답 키를 여기로 끌어다 꽂으세요</div>`;
+    g.innerHTML=`<div id="port" class="rounded-2xl border-2 border-dashed border-cyan-400/60 p-4 text-center min-h-[96px] flex flex-col items-center justify-center text-cyan-300 font-bold transition-all">${portHTML}</div>
+      <p class="tip mt-2">드래그가 어렵다면 키를 탭한 뒤 포트를 탭해도 돼요</p>
+      <div class="grid grid-cols-2 gap-2">${q.opts.map((o,i)=>`<div class="key noselect rounded-2xl p-3 border border-fuchsia-400/60 bg-fuchsia-500/10 text-center font-bold text-[14px] cursor-grab" data-i="${i}" style="touch-action:none;position:relative">
+        <div class="text-xl">🔑</div>${esc(o)}</div>`).join('')}</div>`;
+    const port=$('#port'),keys=[...g.querySelectorAll('.key')];let selK=null;
+    const insert=k=>{const i=+k.dataset.i;k.style.transform='';k.style.visibility='hidden';keys.forEach(x=>x.classList.remove('sel'));selK=null;
+      port.innerHTML=`<div class="text-3xl">🔑</div><div class="text-[15px] mt-1 text-white">${esc(q.opts[i])}</div>`;port.classList.add('sel');SFX.key();vibrate(25);
+      submit(i,port,()=>{k.style.visibility='';port.innerHTML=portHTML;port.classList.remove('sel');});};
+    keys.forEach(k=>{
+      k.oncontextmenu=e=>e.preventDefault();
+      k.onpointerdown=e=>{if(S.locked)return;k.setPointerCapture(e.pointerId);const sx=e.clientX,sy=e.clientY;let moved=false;
+        k.style.transition='none';k.style.zIndex=30;
+        k.onpointermove=ev=>{const dx=ev.clientX-sx,dy=ev.clientY-sy;if(Math.hypot(dx,dy)>8)moved=true;
+          if(moved){k.style.transform=`translate(${dx}px,${dy}px) scale(1.06)`;port.classList.toggle('hot',inside(port,ev));}};
+        const end=ev=>{k.onpointermove=k.onpointerup=k.onpointercancel=null;k.style.transition='transform .25s';k.style.zIndex='';port.classList.remove('hot');
+          if(moved&&ev.type==='pointerup'&&inside(port,ev)&&!S.locked)insert(k);
+          else{k.style.transform='';if(!moved){SFX.tap();selK=k;keys.forEach(x=>x.classList.toggle('sel',x===k));}}};
+        k.onpointerup=k.onpointercancel=end;};
+    });
+    port.onclick=()=>{if(selK&&!S.locked)insert(selK);};
+  },
+  /* 🐞 움직이는 버그 사냥 */
+  target(q,g){
+    g.innerHTML=`<p class="tip">🐞 연구소를 돌아다니는 <b class="text-emerald-300">정답 버그</b>를 터치해 포획하세요!</p>
+      <div id="arena" class="relative h-[320px] rounded-2xl panel overflow-hidden">
+        ${q.opts.map((o,i)=>`<button class="bug absolute left-0 top-0 rounded-full px-4 py-3 text-[14px] font-bold whitespace-nowrap border border-emerald-400/70 bg-slate-900/90 text-emerald-200" style="box-shadow:0 0 14px rgba(16,185,129,.5)" data-i="${i}">🐞 ${esc(o)}</button>`).join('')}
+      </div>`;
+    const A=$('#arena'),W=A.clientWidth,H=A.clientHeight;
+    const bugs=[...A.querySelectorAll('.bug')].map((el,i)=>{const w=el.offsetWidth,h=el.offsetHeight,ang=Math.random()*Math.PI*2,sp=1.1+Math.random()*.7;
+      return {el,w,h,x:Math.random()*Math.max(1,W-w),y:i*(H/4)+Math.max(0,(H/4-h)/2),vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp};});
+    const step=()=>{if(!S.locked)bugs.forEach(b=>{b.x+=b.vx;b.y+=b.vy;
+        if(b.x<0||b.x>W-b.w){b.vx*=-1;b.x=Math.max(0,Math.min(W-b.w,b.x));}
+        if(b.y<0||b.y>H-b.h){b.vy*=-1;b.y=Math.max(0,Math.min(H-b.h,b.y));}
+        b.el.style.transform=`translate(${b.x}px,${b.y}px)`;});
+      gLoop=requestAnimationFrame(step);};
+    step();
+    bugs.forEach(b=>b.el.onclick=()=>{if(S.locked)return;SFX.tap();vibrate(20);submit(+b.el.dataset.i,b.el);});
+  },
+  /* ⏱️ 레이저 타이밍 */
+  timing(q,g){
+    g.innerHTML=`${optList(q)}
+      <div class="panel rounded-2xl p-4 mt-3">
+        <p class="tip">🔴 레이저가 <b class="text-cyan-300">정답 번호 구간</b>을 지날 때 STOP!</p>
+        <div id="tbar" class="relative h-16 rounded-xl overflow-hidden grid grid-cols-4 border border-cyan-500/40 bg-black/50">
+          ${[0,1,2,3].map(i=>`<div class="seg flex items-center justify-center font-orb text-2xl text-cyan-200 ${i<3?'border-r border-cyan-500/30':''} transition-colors" data-i="${i}">${i+1}</div>`).join('')}
+          <div id="tcur" class="absolute top-0 bottom-0 w-[4px] bg-red-500" style="box-shadow:0 0 14px 4px #ef4444;left:0"></div>
+        </div>
+        <button id="tstop" class="btn-solid w-full rounded-2xl p-4 mt-4 text-xl font-orb" style="background:linear-gradient(90deg,#dc2626,#ef4444);box-shadow:0 0 20px rgba(239,68,68,.6);color:#fff">⏹ STOP</button>
+      </div>`;
+    const cur=$('#tcur'),segs=[...g.querySelectorAll('.seg')];let pos=0,dir=1,last=performance.now(),stopped=false;
+    const segOf=()=>Math.min(3,Math.floor(pos*4));
+    const step=t=>{const dt=Math.min(.05,(t-last)/1000);last=t;
+      if(!S.locked&&!stopped){pos+=dir*dt*.62;if(pos>=1){pos=1;dir=-1;}if(pos<=0){pos=0;dir=1;}}
+      cur.style.left=`calc(${pos*100}% - 2px)`;const s=segOf();segs.forEach((el,i)=>el.style.background=i===s?'rgba(239,68,68,.18)':'');
+      gLoop=requestAnimationFrame(step);};
+    gLoop=requestAnimationFrame(step);
+    $('#tstop').onclick=()=>{if(S.locked||stopped)return;stopped=true;const s=segOf();SFX.key();vibrate(30);
+      g.querySelectorAll('.opt').forEach(o=>o.classList.toggle('sel',+o.dataset.i===s));
+      submit(s,g.querySelector(`.opt[data-i="${s}"]`),()=>{stopped=false;g.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));});};
+  },
+  /* 🃏 진실/거짓 스와이프 (OX) */
+  swipe(q,g){
+    g.innerHTML=`<div class="relative h-[230px] flex items-center justify-center">
+        <div class="absolute left-1 top-1/2 -translate-y-1/2 text-center text-red-400 font-orb font-black opacity-60"><div class="text-3xl">❌</div>FAKE</div>
+        <div class="absolute right-1 top-1/2 -translate-y-1/2 text-center text-emerald-400 font-orb font-black opacity-60"><div class="text-3xl">⭕</div>TRUE</div>
+        <div id="card" class="noselect w-[62%] h-[200px] panel rounded-3xl flex flex-col items-center justify-center text-center cursor-grab" style="touch-action:none">
+          <div class="text-5xl">🃏</div><p class="font-orb text-cyan-300 mt-2 text-lg">TRUE or FAKE?</p>
+          <p class="text-xs text-slate-400 mt-2">← 거짓이면 왼쪽<br>참이면 오른쪽 →</p></div>
+      </div>
+      <div class="grid grid-cols-2 gap-2 mt-2">
+        <button class="oxb btn-neon rounded-2xl p-4 text-red-300 font-black text-lg" style="border-color:rgba(239,68,68,.6)" data-v="0">❌ 거짓</button>
+        <button class="oxb btn-neon rounded-2xl p-4 text-emerald-300 font-black text-lg" style="border-color:rgba(16,185,129,.6)" data-v="1">⭕ 참</button>
+      </div>`;
+    const card=$('#card');let busy=false;
+    const reset=()=>{card.style.transition='transform .3s,opacity .3s';card.style.transform='';card.style.opacity=1;card.style.borderColor='';busy=false;};
+    const fly=v=>{if(S.locked||busy)return;busy=true;SFX.swoosh();vibrate(20);card.style.transition='transform .35s,opacity .35s';
+      card.style.transform=`translateX(${v?420:-420}px) rotate(${v?28:-28}deg)`;card.style.opacity=0;
+      setTimeout(()=>submit(v,null,reset),280);};
+    card.onpointerdown=e=>{if(S.locked||busy)return;card.setPointerCapture(e.pointerId);const sx=e.clientX;let dx=0;card.style.transition='none';
+      card.onpointermove=ev=>{dx=ev.clientX-sx;card.style.transform=`translateX(${dx}px) rotate(${dx/14}deg)`;
+        card.style.borderColor=dx>40?'#10b981':dx<-40?'#ef4444':'';};
+      card.onpointerup=card.onpointercancel=()=>{card.onpointermove=card.onpointerup=card.onpointercancel=null;
+        if(Math.abs(dx)>80)fly(dx>0);else reset();};};
+    g.querySelectorAll('.oxb').forEach(b=>b.onclick=()=>fly(b.dataset.v==='1'));
+  },
+  /* 🧩 암호 조각 맞추기 */
+  word(q,g){
+    const L=q.word.length;
+    g.innerHTML=`<div class="panel rounded-2xl p-4">
+      <p class="tip">🧩 암호 조각을 <b class="text-cyan-300">순서대로</b> 탭해 단어를 완성하세요 (가짜 조각 주의!)</p>
+      <div id="slots" class="flex justify-center gap-2 my-3 rounded-xl p-2 border border-transparent">${Array.from({length:L},(_,k)=>`<button class="slot w-14 h-16 rounded-xl border-2 border-cyan-400/60 bg-black/50 font-black text-2xl text-cyan-200" data-k="${k}"></button>`).join('')}</div>
+      <div class="grid grid-cols-4 gap-2">${q.chips.map((c,j)=>`<button class="chip btn-neon rounded-xl py-3 text-xl font-black" data-j="${j}">${esc(c)}</button>`).join('')}</div>
+      <button id="wclr" class="btn-neon w-full rounded-xl p-3 mt-3 text-sm text-red-300">⌫ 전부 지우기</button></div>`;
+    const slots=[...g.querySelectorAll('.slot')],chips=[...g.querySelectorAll('.chip')];let filled=Array(L).fill(null);
+    const draw=()=>{slots.forEach((s,k)=>{s.textContent=filled[k]===null?'':q.chips[filled[k]];s.classList.toggle('sel',filled[k]!==null);});
+      chips.forEach((c,j)=>c.disabled=filled.includes(j));};
+    const clear=()=>{filled=Array(L).fill(null);draw();};
+    chips.forEach(c=>c.onclick=()=>{if(S.locked)return;const k=filled.indexOf(null);if(k<0)return;filled[k]=+c.dataset.j;SFX.key();vibrate(12);draw();
+      if(!filled.includes(null))setTimeout(()=>submit(filled.map(j=>q.chips[j]).join(''),$('#slots'),clear),180);});
+    slots.forEach(s=>s.onclick=()=>{if(S.locked)return;filled[+s.dataset.k]=null;SFX.tap();draw();});
+    $('#wclr').onclick=()=>{if(S.locked)return;SFX.tap();clear();};
+  },
+};
+function renderGimmick(q){GIMMICKS[q.gimmick](q,$('#gimmick'));}
+
+function updateHintBtn(){
+  const b=$('#hintBtn');if(!b)return;clearInterval(hintTimer);
+  const upd=()=>{const left=Math.ceil((S.hintCooldownUntil-Date.now())/1000);
+    if(left>0){b.disabled=true;b.textContent=`💡 쿨타임 ${left}초`;}else{b.disabled=false;b.textContent=S.hintUsedHere?'💡 힌트 다시 보기':'💡 힌트 열람 (−5점)';clearInterval(hintTimer);}};
+  upd();hintTimer=setInterval(upd,250);
+}
+function useHint(q){
+  if(Date.now()<S.hintCooldownUntil)return;
+  if(!S.hintUsedHere){S.hints++;S.hintUsedHere=true;}
+  SFX.hint();const h=$('#hintBox');h.classList.remove('hidden');
+  h.innerHTML=`<b>💡 해커 노트:</b> ${esc(q.hint)}`;
+  S.hintCooldownUntil=Date.now()+HINT_COOLDOWN_SEC*1000;updateHintBtn();
+}
+
+function answerText(q){
+  if(q.type==='mc')return esc(q.opts[q.ans]);
+  if(q.type==='ox')return (q.ans?'⭕ 참(TRUE)':'❌ 거짓(FAKE)')+(q.explain?`<span class="block text-[13px] font-normal text-slate-300 mt-2">${esc(q.explain)}</span>`:'');
+  return esc(q.word);
+}
+
+function submit(val,el,onWrongReset){
+  const q=S.list[S.idx];
+  if(val===q.ans){
+    S.locked=true;if(!S.triedWrong)S.perfect++;
+    el&&el.classList.add('ok');SFX.correct();vibrate(40);confetti(70);
+    const z=zones[q.zone-1],last=S.idx+1>=S.list.length;
+    const ov=document.createElement('div');
+    ov.className='fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm px-6';
+    ov.innerHTML=`<div class="panel rounded-2xl p-6 text-center w-full max-w-sm pop" style="border-color:#10b981;box-shadow:0 0 40px rgba(16,185,129,.5)">
+      <div class="text-5xl mb-2">🔓</div>
+      <p class="font-orb text-emerald-400 glow-e text-lg">ACCESS GRANTED</p>
+      <p class="text-sm text-slate-300 mt-1">${z.proto} 프로토콜 해제! (${S.idx+1}/${S.list.length})</p>
+      <p class="mt-3 text-[15px] font-bold">정답: ${answerText(q)}</p>
+      ${q.ref?`<p class="text-[11px] text-cyan-300/80 mt-3">📖 《AI 읽는 힘, 보는 힘》 ${esc(q.ref)}${/^Q/.test(q.ref)?'번 질문':''}</p>`:''}
+      <button class="btn-solid rounded-2xl p-4 mt-5 w-full" style="background:linear-gradient(90deg,#059669,#10b981)">${last?'🚪 최종 출입문 개방':'다음 프로토콜 ▶'}</button></div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('button').onclick=()=>{SFX.unlock();ov.remove();stopLoop();S.idx++;
+      if(!last)screenQuestion();else{S.end=Date.now();clearInterval(elapsedTimer);screenEscape();}};
+  }else{
+    S.mistakes++;S.triedWrong=true;S.locked=true;
+    el&&el.classList.add('bad');SFX.wrong();redFlash();vibrate([120,60,120]);shakeEl($('#qwrap'));
+    const lb=$('#lockBox'),lines=['ARGOS: "틀렸다, 인간."','ARGOS: "그 정도로는 날 못 이긴다."','ARGOS: "침입 시도 감지. 방어벽 강화."','ARGOS: "흥미롭군. 다시 해봐라."'];
+    lb.classList.remove('hidden');let t=WRONG_LOCK_SEC;
+    const draw=()=>lb.innerHTML=`🚨 ACCESS DENIED · 시스템 잠금 ${t}초 (−10점)<br><span class="font-normal text-pink-300 text-xs">${lines[S.mistakes%lines.length]}</span>`;draw();
+    document.querySelectorAll('#gimmick button').forEach(b=>b.disabled=true);
+    clearInterval(lockTimer);
+    lockTimer=setInterval(()=>{t--;if(t>0){draw();tone(500,.05,'square',.04);}else{clearInterval(lockTimer);lb.classList.add('hidden');S.locked=false;
+      document.querySelectorAll('#gimmick button').forEach(b=>b.disabled=false);el&&el.classList.remove('bad');onWrongReset&&onWrongReset();}},1000);
+  }
+}
+
+/* =========================================================
+   9. 화면: 탈출 성공 + 인증서
+========================================================= */
+async function screenEscape(){
+  SFX.fanfare();confetti(160,true);setTimeout(()=>confetti(120,true),900);vibrate([60,40,60,40,200]);
+  const dur=S.end-S.start,total=S.list.length,{sc,gi,G}=calcScore();
+  // 이번 판 기록 저장
+  const rec=loadRec(),prevBest=bestRun(rec);
+  const run={att:S.attempt,sc,gi,dur,mistakes:S.mistakes,hints:S.hints,end:S.end,code:genCode(gi,S.attempt)};
+  rec.runs.push(run);if(rec.used>=MAX_ATTEMPTS)rec.final=true;saveRec(rec);
+  const isBest=bestRun(rec)===rec.runs[rec.runs.length-1]||(bestRun(rec)&&bestRun(rec).code===run.code);
+  const improved=!prevBest||isBest&&(gi<prevBest.gi||(gi===prevBest.gi&&sc>prevBest.sc));
+  const left=leftOf(rec),best=bestRun(rec),BG=GRADES[best.gi];
+  app.innerHTML=`
+  <div class="fade-in pb-8">
+    <div class="text-center mt-4">
+      <div class="text-6xl pop">🚪✨</div>
+      <p class="font-orb text-emerald-400 glow-e text-xl mt-2">LOCKDOWN RELEASED</p>
+      <h2 class="text-2xl font-black mt-1">탈출 성공!</h2>
+      <pre id="endLog" class="font-mono2 text-[12px] text-pink-300 mt-2 whitespace-pre-wrap"></pre>
+    </div>
+    <div class="panel rounded-2xl p-4 mt-4 text-center pop" style="border-color:${G.color};box-shadow:0 0 30px ${G.color}55">
+      <p class="text-[12px] text-slate-400">${S.attempt}회차 결과 ${improved&&prevBest?'<b class="text-amber-300">· 🏆 최고 기록 갱신!</b>':''}</p>
+      <div class="flex items-center justify-center gap-4 mt-1">
+        <span class="font-orb font-black text-6xl" style="color:${G.color};text-shadow:0 0 18px ${G.color}">${G.g}</span>
+        <div class="text-left"><p class="font-orb text-3xl">${sc}<span class="text-base text-slate-400">점</span></p><p class="text-sm font-bold" style="color:${G.color}">${G.title}</p></div>
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-2 mt-3 text-center">
+      <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">소요</p><p class="font-orb text-base text-cyan-300">${fmtDur(dur)}</p></div>
+      <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">원샷</p><p class="font-orb text-base text-emerald-300">${S.perfect}/${total}</p></div>
+      <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">오답</p><p class="font-orb text-base text-red-300">${S.mistakes}</p></div>
+      <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">힌트</p><p class="font-orb text-base text-amber-300">${S.hints}</p></div>
+    </div>
+    <div class="rounded-2xl border border-amber-400/60 bg-amber-400/10 p-4 mt-3 text-[13px]">
+      <p>🏆 현재 최고 등급: <b style="color:${BG.color}">${BG.g}등급 (${best.sc}점)</b> → <b>${BG.prize}</b></p>
+      <p class="mt-1 text-slate-300">${left>0?`남은 도전 기회 <b class="text-emerald-300">${left}번</b> — 더 높은 등급에 도전할 수 있어요!`:'🔒 도전 기회를 모두 사용해 기록이 최종 확정되었어요.'}</p>
+    </div>
+    <div id="nameArea"></div>
+    <button id="certBtn" class="btn-solid w-full rounded-2xl p-4 mt-3 text-base">🎁 선물 교환 인증서 보기</button>
+    ${left>0?`<button id="retryBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-emerald-300 font-bold">🔁 다시 도전하기 (남은 기회 ${left}번)</button>`:''}
+    <button id="homeBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-slate-300">🏠 처음 화면으로</button>
+  </div>`;
+  typeText($('#endLog'),'ARGOS: "...인정하지. 너는 AI를 읽는 힘과 보는 힘을 모두 가졌다."',24);
+  $('#certBtn').onclick=()=>{SFX.unlock();screenCert();};
+  if($('#retryBtn'))$('#retryBtn').onclick=()=>{SFX.tap();screenMenu();};
+  $('#homeBtn').onclick=()=>{SFX.tap();screenMenu();};
+}
+
+/* 학번·이름 입력 (최초 1회만, 이후 고정) */
+function askName(area,onDone){
+  area.innerHTML=`<div class="panel rounded-2xl p-4 mt-4 pop">
+    <p class="font-bold text-cyan-300 mb-2">🪪 요원 등록 (최초 1회)</p>
+    <input id="sid" inputmode="numeric" maxlength="6" placeholder="학번 (예: 10312)" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-4 text-base outline-none focus:border-cyan-300 mb-2">
+    <input id="sname" maxlength="10" placeholder="이름" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-4 text-base outline-none focus:border-cyan-300">
+    <p class="text-[11px] text-slate-500 mt-2">※ 한 번 등록하면 학번·이름을 바꿀 수 없어요. 정확히 입력하세요!</p>
+    <button id="issueBtn" class="btn-solid w-full rounded-2xl p-4 mt-3 text-base">등록하고 인증서 발급</button></div>`;
+  $('#issueBtn').onclick=()=>{
+    const id=$('#sid').value.trim(),nm=$('#sname').value.trim();
+    if(!/^\d{4,6}$/.test(id)){shakeEl($('#sid'));SFX.wrong();$('#sid').focus();return;}
+    if(nm.length<2){shakeEl($('#sname'));SFX.wrong();$('#sname').focus();return;}
+    if(!confirm(`학번 ${id} / 이름 ${nm}\n이대로 등록할까요? (수정 불가)`))return;
+    const rec=loadRec();rec.sid=id;rec.sname=nm;saveRec(rec);SFX.unlock();onDone();
+  };
+}
+
+/* 선물 교환 인증서 — 최고 기록 기준 */
+function screenCert(){
+  stopLoop();clearInterval(clockTimer);
+  const rec=loadRec(),best=bestRun(rec);
+  if(!best){screenMenu();return;}
+  const G=GRADES[best.gi],left=leftOf(rec);
+  app.innerHTML=`<div class="fade-in pb-8"><div id="certArea"></div><div id="certBtns"></div></div>`;
+  if(!rec.sid){
+    $('#certArea').innerHTML=`<div class="text-center mt-6"><p class="text-4xl">🪪</p><p class="font-black text-xl mt-2">인증서 발급 전 요원 등록</p><p class="text-sm text-slate-400 mt-1">선물 수령 확인을 위해 학번과 이름이 필요해요</p></div>`;
+    const a=document.createElement('div');$('#certArea').appendChild(a);askName(a,screenCert);return;
+  }
+  $('#certArea').innerHTML=`
+  <div class="mt-2 rounded-2xl p-[2px] pop" style="background:linear-gradient(135deg,#06b6d4,#a855f7,#10b981,#06b6d4);background-size:300% 300%;animation:gradmove 4s linear infinite">
+    <div class="holo rounded-2xl p-5" style="background:linear-gradient(160deg,#0b1222,#111c33)">
+      <div class="relative z-10">
+        <p class="text-[11px] font-bold text-slate-300">🏫 ${SCHOOL} · ${EVENT_NAME}</p>
+        <div class="flex items-start justify-between mt-2">
+          <div>
+            <p class="font-orb text-[10px] tracking-[.25em] text-cyan-400">CORE // PRIZE CERTIFICATE</p>
+            <p class="text-lg font-black mt-1">🎁 선물 교환 인증서</p>
+            <p class="text-sm font-bold mt-0.5" style="color:${G.color}">최고 기록 · ${G.title} · ${best.sc}점</p>
+          </div>
+          <div class="seal w-16 h-16 rounded-full flex items-center justify-center font-orb font-black text-3xl text-slate-900" style="background:conic-gradient(#06b6d4,#a855f7,#10b981,#facc15,#06b6d4);box-shadow:0 0 20px rgba(168,85,247,.6)">${G.g}</div>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <div><p class="text-[10px] text-slate-500">학번</p><p class="font-orb text-xl">${esc(rec.sid)}</p></div>
+          <div><p class="text-[10px] text-slate-500">이름</p><p class="text-xl font-black">${esc(rec.sname)}</p></div>
+        </div>
+        <div class="mt-3 rounded-xl bg-black/50 border border-cyan-500/40 p-3 text-center">
+          <p class="text-[10px] text-slate-500">최고 기록 인증 코드</p>
+          <p class="font-orb text-2xl text-cyan-300 glow-c tracking-wider">${best.code}</p>
+        </div>
+        <div class="mt-3 rounded-xl py-2 text-center font-black text-slate-900" style="background:${G.color}">${G.prize}</div>
+        <div class="mt-3 rounded-xl bg-black/30 p-2">
+          <p class="text-[10px] text-slate-500 px-1 mb-1">도전 기록 (${rec.used}/${MAX_ATTEMPTS}회 사용)</p>
+          <div class="grid grid-cols-${MAX_ATTEMPTS} gap-1.5 text-center">
+            ${Array.from({length:MAX_ATTEMPTS},(_,i)=>{const r=rec.runs.find(x=>x.att===i+1);const g=r?GRADES[r.gi]:null;
+              const isB=r&&r.code===best.code;
+              return `<div class="rounded-lg py-1.5 ${isB?'ring-2 ring-amber-300':''}" style="background:rgba(15,23,42,.7)">
+                <p class="text-[10px] text-slate-400">${i+1}회차${isB?' 🏆':''}</p>
+                <p class="font-orb font-black" style="color:${g?g.color:'#475569'}">${g?g.g:(i<rec.used?'포기':'-')}</p>
+                <p class="text-[10px] text-slate-400">${r?r.sc+'점':''}</p></div>`;}).join('')}
+          </div>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+          <div><span class="text-slate-500">최고 기록 일시</span><br><b class="font-mono2">${fmtTime(new Date(best.end))}</b></div>
+          <div><span class="text-slate-500">소요 / 오답 / 힌트</span><br><b class="font-mono2">${fmtDur(best.dur)} / ${best.mistakes} / ${best.hints}</b></div>
+        </div>
+        <div class="mt-3 rounded-xl px-3 py-2 text-center text-[13px] font-black ${rec.final?'bg-emerald-400/20 text-emerald-300 border border-emerald-400/60':'bg-amber-400/15 text-amber-300 border border-amber-400/60'}">
+          ${rec.final?'🔒 최종 확정 — 선물 수령 가능':`⏳ 도전 진행 중 (남은 기회 ${left}번) — 확정 후 선물 수령`}
+        </div>
+        <div class="mt-3 flex items-center justify-between rounded-xl border border-emerald-400/50 bg-emerald-400/10 px-3 py-2">
+          <span class="text-[11px] text-emerald-300 flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>LIVE 실시간 검증</span>
+          <span id="liveClock" class="font-orb text-emerald-300 text-sm"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mt-3 overflow-hidden rounded-2xl bg-amber-400 text-slate-900 font-black py-3">
+    <span class="marquee">📸 ${rec.final?'이 화면을 정보실 선생님께 보여주고 선물을 받으세요!':'도전을 마치면 \'도전 종료\'를 누른 뒤 정보실 선생님께 보여주세요!'} 📸</span>
+  </div>`;
+  $('#certBtns').innerHTML=`
+    ${!rec.final?`<button id="finalBtn" class="btn-solid w-full rounded-2xl p-4 mt-3 text-base" style="background:linear-gradient(90deg,#d97706,#f59e0b);box-shadow:0 0 20px rgba(245,158,11,.5)">🏁 도전 종료하고 선물 받기 (최종 확정)</button>`:''}
+    ${left>0?`<button id="retryBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-emerald-300 font-bold">🔁 다시 도전하기 (남은 기회 ${left}번)</button>`:''}
+    <button id="homeBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-slate-300">🏠 처음 화면으로</button>`;
+  if($('#finalBtn'))$('#finalBtn').onclick=()=>{
+    if(!confirm(`지금 최고 기록(${G.g}등급)으로 확정할까요?\n확정하면 남은 기회 ${left}번은 사라지고 다시 도전할 수 없어요.`))return;
+    const r=loadRec();r.final=true;saveRec(r);SFX.fanfare();confetti(120,true);screenCert();};
+  if($('#retryBtn'))$('#retryBtn').onclick=()=>{SFX.tap();screenMenu();};
+  $('#homeBtn').onclick=()=>{SFX.tap();screenMenu();};
+  const tk=()=>{const e=$('#liveClock');if(e)e.textContent=fmtTime(new Date()).slice(11);};tk();
+  clockTimer=setInterval(tk,1000);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* =========================================================
+   10. 교사용 도구 (메인 로고 5번 연속 탭) — 코드 검증 & 기기 기록 초기화
+========================================================= */
+function teacherVerify(){
+  SFX.hint();
+  const ov=document.createElement('div');
+  ov.className='fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm px-6';
+  ov.innerHTML=`<div class="panel rounded-2xl p-5 w-full max-w-sm pop">
+    <p class="font-bold text-fuchsia-300">🧑‍🏫 교사용 코드 검증기</p>
+    <p class="text-xs text-slate-400 mt-1">인증 코드를 입력하면 위조 여부와 <b>코드에 숨겨진 실제 등급·회차</b>를 확인합니다. 인증서 내용과 다르면 조작된 화면입니다.</p>
+    <input id="vcode" placeholder="AI-2026-XXXX" autocapitalize="characters" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-4 mt-3 font-orb uppercase outline-none">
+    <p id="vres" class="text-center font-bold mt-3 min-h-[48px]"></p>
+    <div class="flex gap-2 mt-2"><button id="vgo" class="btn-solid flex-1 rounded-2xl p-3">검증</button><button id="vx" class="btn-neon rounded-2xl px-4">닫기</button></div>
+    <button id="vreset" class="w-full mt-4 text-[12px] text-red-300/80 underline">🧹 이 기기의 도전 기록 초기화 (테스트용)</button></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#vgo').onclick=()=>{const v=verifyCode(ov.querySelector('#vcode').value);const r=ov.querySelector('#vres');
+    r.className=`text-center font-bold mt-3 min-h-[48px] ${v?'text-emerald-400':'text-red-400 glow-r'}`;
+    r.innerHTML=v?`✅ 정상 발급 코드<br><span style="color:${v.G.color}">${v.att}회차 · ${v.G.g}등급 · ${v.G.prize}</span>`:'❌ 위조 또는 잘못된 코드';v?SFX.correct():SFX.wrong();};
+  ov.querySelector('#vx').onclick=()=>ov.remove();
+  ov.querySelector('#vreset').onclick=()=>{if(confirm('이 기기의 도전 횟수·기록·학번을 모두 지울까요?\n(선생님 테스트용 — 학생 기기에서는 사용하지 마세요)')){
+    clearRec();ov.remove();screenMenu();}};
+}
+
+/* 시작 */
+document.addEventListener('pointerdown',()=>ac(),{once:true});
+screenBoot();
+</script>
+</body>
+</html>
