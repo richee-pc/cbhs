@@ -280,21 +280,28 @@ function loopConf(){
 }
 
 /* =========================================================
-   4. 위조 방지 코드 — 등급이 코드 안에 숨겨져 있음 (교사용 검증기로 확인)
-   형식: AI-2026-XXXX  (난수 2 + 등급 암호 1 + 검증문자 1)
+   4. 서버(구글 앱스 스크립트) 통신 — 도전 횟수·채점·등급·인증 코드·선물 지급은 모두 서버가 결정
+   (이 폰에 저장된 기록은 화면 표시용이라, 폰에서 고쳐도 공식 기록은 바뀌지 않음)
 ========================================================= */
-const CS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 혼동 문자(0,O,1,I) 제외 32자
-const SALT=[7,13,29];
-function checkChar(a){let s=11;a.forEach((ch,i)=>{s=(s*31+CS.indexOf(ch)*SALT[i]+i*5)%997;});return CS[s%32];}
-// 형식: 난수 1 + 회차 암호 1 + 등급 암호 1 + 검증문자 1
-function genCode(gi,att){const r=new Uint8Array(3);crypto.getRandomValues(r);
-  const a=[CS[r[0]%32],CS[(Math.min(Math.max(att||1,1),4)-1)*8+r[1]%8],CS[gi*8+r[2]%8]];return `AI-2026-${a.join('')}${checkChar(a)}`;}
-function verifyCode(code){
-  const m=String(code).toUpperCase().replace(/\s/g,'').match(/^AI-?2026-?([A-Z2-9]{4})$/);if(!m)return null;
-  const a=m[1].split('');if(a.some(c=>CS.indexOf(c)<0))return null;
-  if(checkChar(a.slice(0,3))!==a[3])return null;
-  return {G:GRADES[Math.floor(CS.indexOf(a[2])/8)],att:Math.floor(CS.indexOf(a[1])/8)+1};
+async function api(body,tries=3){
+  for(let i=0;i<tries;i++){
+    try{const r=await fetch(RECORD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});return await r.json();}
+    catch(e){if(i===tries-1)throw e;await sleep(900*(i+1));}
+  }
 }
+const gIndex=g=>Math.max(0,GRADES.findIndex(x=>x.g===g));
+// 서버가 돌려준 기록을 화면용 형식으로 바꿔 이 기기에 저장
+function runFromServer(s){return {att:s.att,sc:s.score,gi:gIndex(s.grade),code:s.code,end:Date.now(),dur:(s.secs||0)*1000,mistakes:s.wrong||0,hints:s.hints||0,sus:s.sus||''};}
+function mergeServer(rec,d){
+  if(typeof d.used==='number'){rec.used=d.used;if(rec.used>=MAX_ATTEMPTS)rec.final=true;}
+  if(Array.isArray(d.runs))rec.runs=d.runs.map(runFromServer);   // 서버의 공식 기록으로 통째로 교체
+  if(d.best){const b=runFromServer(d.best);rec.runs=(rec.runs||[]).filter(x=>x.att!==b.att);rec.runs.push(b);}
+  if(d.received){rec.final=true;rec.claimed={at:d.received.when,teacher:d.received.teacher,grade:d.received.grade};}
+  else if('received' in d)rec.claimed=null;
+  return rec;
+}
+const who=rec=>({type:rec.ptype==='staff'?'staff':'student',sid:rec.ptype==='staff'?'':rec.sid,name:rec.sname});
+let teacherPin='';try{teacherPin=sessionStorage.getItem('agi_tpin')||'';}catch(e){}
 
 /* 도전 기록 (이 기기에 저장) — 도전 횟수 제한 & 최고 등급 관리 */
 const STORE_KEY='agi_cbhs_2026';
@@ -349,10 +356,34 @@ let lockTimer=null,hintTimer=null,clockTimer=null,elapsedTimer=null,gLoop=null;
 function stopLoop(){if(gLoop){cancelAnimationFrame(gLoop);gLoop=null;}}
 
 function prepare(q,g){
-  if(q.type==='mc'){const order=shuffle([0,1,2,3]);return {...q,gimmick:g,opts:order.map(k=>q.options[k]),ans:order.indexOf(q.answer)};}
+  if(q.type==='mc'){const order=shuffle([0,1,2,3]);return {...q,gimmick:g,order,opts:order.map(k=>q.options[k]),ans:order.indexOf(q.answer)};}
   if(q.type==='ox')return {...q,gimmick:g,ans:q.answer};
   return {...q,gimmick:g,ans:q.word,chips:shuffle([...q.word,...q.decoys])};
 }
+
+// 서버에 도전 시작을 알리고 허락을 받은 뒤에만 문제를 냄 (횟수는 서버가 셈)
+async function beginMission(){
+  const rec=loadRec();
+  const ov=document.createElement('div');ov.className='fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm';
+  ov.innerHTML=`<div class="panel rounded-2xl px-6 py-5 text-center pop"><p class="font-orb text-cyan-300 glow-c">CONNECTING…</p><p class="text-sm text-slate-300 mt-1">보안 서버에 접속하는 중</p></div>`;
+  document.body.appendChild(ov);
+  let d;
+  try{d=await api({action:'start',...who(rec),pin:teacherPreview?teacherPin:''});}
+  catch(e){ov.remove();alert('서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.\n(도전 기회는 차감되지 않았어요)');return;}
+  ov.remove();
+  if(d.status==='ok'){
+    if(!d.preview){rec.used=d.used;saveRec(rec);}
+    newGame();S.token=d.token;S.attempt=d.preview?0:d.att;S.preview=!!d.preview;screenQuestion();return;
+  }
+  if(d.status==='max'||d.status==='received'){saveRec(mergeServer(rec,{...d,used:Math.max(d.used||0,MAX_ATTEMPTS)}));
+    alert(d.status==='received'?'이미 선물을 받았어요. 참여해 줘서 고마워요!':'도전 기회 3번을 모두 사용했어요.');screenMenu();return;}
+  if(d.status==='closed'){alert(`지금은 참여 기간이 아니에요.\n(${PERIOD_LABEL})`);screenMenu();return;}
+  if(d.status==='owner'){alert(`이 학번은 이미 다른 이름(${d.name})으로 등록돼 있어요.\n학번을 다시 확인하거나 ${PICKUP_PLACE} 선생님께 문의해 주세요.`);return;}
+  if(d.status==='pin'||d.status==='locked'){teacherPreview=false;try{sessionStorage.removeItem('agi_preview');}catch(e){}alert('교사 미리보기 비밀번호가 맞지 않아 미리보기를 껐어요.');screenMenu();return;}
+  alert('도전을 시작하지 못했어요: '+(d.msg||d.status));
+}
+// 서버 채점용 답안 기록 (원래 보기 번호 기준)
+function logAnswer(val){const q=S.list[S.idx];const L=S.log[S.idx];L.a.push(q.type==='mc'?q.order[val]:val);}
 
 function newGame(){
   // 매 판마다 10가지 해제 방식 중 7가지를 겹치지 않게 랜덤 배치
@@ -367,8 +398,8 @@ function newGame(){
       if(SHORT_ONLY.includes(g)){const sh=pool.filter(isShort);if(sh.length)pool=sh;else return prepare(pick(pool),'choice');}}
     return prepare(pick(pool),g);
   });
-  S={list,idx:0,mistakes:0,hints:0,perfect:0,triedWrong:false,hintUsedHere:false,start:Date.now(),end:null,locked:false,hintCooldownUntil:0,attempt:0};
-  const rec=loadRec();rec.used++;saveRec(rec);S.attempt=rec.used; // 시작하는 순간 1회 차감 (새로고침·포기 포함)
+  S={list,idx:0,mistakes:0,hints:0,perfect:0,triedWrong:false,hintUsedHere:false,start:Date.now(),end:null,locked:false,hintCooldownUntil:0,attempt:0,
+     log:list.map(q=>({id:q.id,a:[],h:0}))};
 }
 
 function calcScore(){const sc=Math.max(0,100-S.mistakes*10-S.hints*5);const gi=GRADES.findIndex(x=>sc>=x.min);return {sc,gi,G:GRADES[gi]};}
@@ -433,7 +464,7 @@ async function screenBoot(){
 /* =========================================================
    7. 화면: 메뉴
 ========================================================= */
-let logoTaps=0,logoTapT=0;
+let logoTaps=0,logoTapT=0,menuSynced=false;
 function screenMenu(){
   clearInterval(clockTimer);stopLoop();
   const rec=loadRec(),left=leftOf(rec),best=bestRun(rec),BG=best?GRADES[best.gi]:null,ph=phase();
@@ -526,10 +557,13 @@ function screenMenu(){
     const ms=OPEN_AT.getTime()-nowMs();if(ms<=0){screenMenu();return;}e.textContent=fmtLeft(ms);},1000);}
   if($('#startBtn'))$('#startBtn').onclick=()=>{
     if(phase()!=='open'){screenMenu();return;} // 화면을 열어둔 채 기간이 끝난 경우
-    if(!confirm(`${MAX_ATTEMPTS-left+1}회차 도전을 시작할까요?\n시작하면 도전 기회 1회가 사용됩니다. (남은 기회 ${left}번 → ${left-1}번)`))return;
-    SFX.unlock();newGame();screenQuestion();};
+    if(!loadRec().sid){SFX.tap();screenRegister();return;}   // 첫 도전 전에 학번·이름 등록
+    if(!teacherPreview&&!confirm(`${MAX_ATTEMPTS-left+1}회차 도전을 시작할까요?\n시작하면 도전 기회 1회가 사용됩니다. (남은 기회 ${left}번 → ${left-1}번)`))return;
+    SFX.unlock();beginMission();};
   if($('#myCertBtn'))$('#myCertBtn').onclick=()=>{SFX.tap();screenCert();};
   $('#muteBtn').onclick=e=>{muted=!muted;e.target.textContent=muted?'🔇 소리 꺼짐':'🔊 소리 켜짐';SFX.tap();};
+  // 등록된 기기라면 서버의 공식 기록(남은 기회·최고 등급)으로 한 번 맞춤
+  if(!menuSynced&&rec.sid){menuSynced=true;syncFromServer().then(ch=>{if(ch&&$('#menuRoot'))screenMenu();});}
   // 교사용 숨은 검증기: 로고 5번 연속 탭
   $('#logo').onclick=()=>{const n=Date.now();logoTaps=(n-logoTapT<600)?logoTaps+1:1;logoTapT=n;if(logoTaps>=5){logoTaps=0;teacherVerify();}};
 }
@@ -830,7 +864,7 @@ function updateHintBtn(){
 }
 function useHint(q){
   if(Date.now()<S.hintCooldownUntil)return;
-  if(!S.hintUsedHere){S.hints++;S.hintUsedHere=true;}
+  if(!S.hintUsedHere){S.hints++;S.hintUsedHere=true;if(S.log)S.log[S.idx].h=1;}
   SFX.hint();const h=$('#hintBox');h.classList.remove('hidden');
   h.innerHTML=`<b>💡 해커 노트:</b> ${esc(q.hint)}`;
   S.hintCooldownUntil=Date.now()+HINT_COOLDOWN_SEC*1000;updateHintBtn();
@@ -844,6 +878,7 @@ function answerText(q){
 
 function submit(val,el,onWrongReset){
   const q=S.list[S.idx];
+  if(S.log)logAnswer(val);
   if(val===q.ans){
     S.locked=true;if(!S.triedWrong)S.perfect++;
     el&&el.classList.add('ok');SFX.correct();vibrate(40);confetti(70);
@@ -878,14 +913,9 @@ function submit(val,el,onWrongReset){
 ========================================================= */
 async function screenEscape(){
   SFX.fanfare();confetti(160,true);setTimeout(()=>confetti(120,true),900);vibrate([60,40,60,40,200]);
-  const dur=S.end-S.start,total=S.list.length,{sc,gi,G}=calcScore();
-  // 이번 판 기록 저장
-  const rec=loadRec(),prevBest=bestRun(rec);
-  const run={att:S.attempt,sc,gi,dur,mistakes:S.mistakes,hints:S.hints,end:S.end,code:genCode(gi,S.attempt)};
-  rec.runs.push(run);if(rec.used>=MAX_ATTEMPTS)rec.final=true;saveRec(rec);
-  const isBest=bestRun(rec)===rec.runs[rec.runs.length-1]||(bestRun(rec)&&bestRun(rec).code===run.code);
-  const improved=!prevBest||isBest&&(gi<prevBest.gi||(gi===prevBest.gi&&sc>prevBest.sc));
-  const left=leftOf(rec),best=bestRun(rec),BG=GRADES[best.gi];
+  const total=S.list.length,local=calcScore();
+  const rec0=loadRec();
+  if(!S.preview){rec0.pending={action:'finish',token:S.token,log:S.log,att:S.attempt};saveRec(rec0);}
   app.innerHTML=`
   <div class="fade-in pb-8 md:max-w-xl md:mx-auto">
     <div class="text-center mt-4">
@@ -894,29 +924,72 @@ async function screenEscape(){
       <h2 class="text-2xl font-black mt-1">탈출 성공!</h2>
       <pre id="endLog" class="font-mono2 text-[12px] text-pink-300 mt-2 whitespace-pre-wrap"></pre>
     </div>
-    <div class="panel rounded-2xl p-4 mt-4 text-center pop" style="border-color:${G.color};box-shadow:0 0 30px ${G.color}55">
-      <p class="text-[12px] text-slate-400">${S.attempt}회차 결과 ${improved&&prevBest?'<b class="text-amber-300">· 🏆 최고 기록 갱신!</b>':''}</p>
-      <div class="flex items-center justify-center gap-4 mt-1">
-        <span class="font-orb font-black text-6xl" style="color:${G.color};text-shadow:0 0 18px ${G.color}">${G.g}</span>
-        <div class="text-left"><p class="font-orb text-3xl">${sc}<span class="text-base text-slate-400">점</span></p><p class="text-sm font-bold" style="color:${G.color}">${G.title}</p></div>
-      </div>
+    <div id="resultBox" class="panel rounded-2xl p-5 mt-4 text-center">
+      <p class="font-orb text-cyan-300 glow-c">SERVER VERIFYING…</p>
+      <p class="text-sm text-slate-300 mt-1">보안 서버가 답안을 채점하고 있어요</p>
     </div>
     <div class="grid grid-cols-4 gap-2 mt-3 text-center">
-      <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">소요</p><p class="font-orb text-base text-cyan-300">${fmtDur(dur)}</p></div>
+      <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">소요</p><p class="font-orb text-base text-cyan-300">${fmtDur(S.end-S.start)}</p></div>
       <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">원샷</p><p class="font-orb text-base text-emerald-300">${S.perfect}/${total}</p></div>
       <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">오답</p><p class="font-orb text-base text-red-300">${S.mistakes}</p></div>
       <div class="panel rounded-2xl p-2"><p class="text-[10px] text-slate-400">힌트</p><p class="font-orb text-base text-amber-300">${S.hints}</p></div>
     </div>
+    <div id="afterBox"></div>
+  </div>`;
+  typeText($('#endLog'),'ARGOS: "...인정하지. 너는 AI를 읽는 힘과 보는 힘을 모두 가졌다."',24);
+  let d;
+  try{d=S.preview?await api({action:'finish',token:S.token,log:S.log}):await sendPending();}catch(e){d=null;}
+  showEscapeResult(d,local);
+}
+
+// 아직 서버에 못 보낸 결과가 있으면 다시 보냄 (인터넷이 잠깐 끊겼을 때 대비)
+async function sendPending(){
+  const rec=loadRec();if(!rec.pending)return {status:'none'};
+  let d;try{d=await api(rec.pending);}catch(e){return null;}
+  const r=loadRec();
+  if(d.status==='ok'){
+    r.pending=null;const run=runFromServer(d.run);r.runs=(r.runs||[]).filter(x=>x.att!==run.att);r.runs.push(run);
+    mergeServer(r,{best:d.best});saveRec(r);
+  }else if(d.status==='invalid'||d.status==='token'){r.pending=null;saveRec(r);}
+  return d;
+}
+
+function showEscapeResult(d,local){
+  const box=$('#resultBox'),after=$('#afterBox');if(!box)return;
+  if(!d){
+    box.innerHTML=`<p class="text-lg font-black text-amber-300">⚠ 서버에 기록하지 못했어요</p>
+      <p class="text-[13px] text-slate-300 mt-1">인터넷 연결을 확인하고 다시 눌러 주세요. 결과는 이 폰에 안전하게 보관돼 있어요.</p>
+      <button id="retrySend" class="btn-solid w-full rounded-2xl p-3 mt-3">🔄 다시 보내기</button>`;
+    $('#retrySend').onclick=async()=>{box.innerHTML='<p class="font-orb text-cyan-300">RETRYING…</p>';let r;try{r=await sendPending();}catch(e){r=null;}showEscapeResult(r,local);};
+    after.innerHTML=`<button id="homeBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-slate-300">🏠 처음 화면으로</button>`;
+    $('#homeBtn').onclick=()=>{SFX.tap();screenMenu();};return;
+  }
+  if(d.status!=='ok'){
+    box.innerHTML=`<p class="text-lg font-black text-red-300">❌ 공식 기록으로 인정되지 않았어요</p>
+      <p class="text-[13px] text-slate-300 mt-1">${d.status==='invalid'?'답안 기록이 올바르지 않아요.':'도전 정보가 확인되지 않아요.'} ${PICKUP_PLACE} 선생님께 문의해 주세요.</p>`;
+    after.innerHTML=`<button id="homeBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-slate-300">🏠 처음 화면으로</button>`;
+    $('#homeBtn').onclick=()=>{SFX.tap();screenMenu();};return;
+  }
+  const run=d.run,G=GRADES[gIndex(run.grade)];
+  box.style.borderColor=G.color;box.style.boxShadow=`0 0 30px ${G.color}55`;
+  box.innerHTML=`<p class="text-[12px] text-slate-400">${S.preview?'🧪 미리보기 결과 (공식 기록 아님)':`${run.att}회차 공식 결과`} · <span class="text-emerald-300">✔ 서버 확인</span></p>
+    <div class="flex items-center justify-center gap-4 mt-1">
+      <span class="font-orb font-black text-6xl" style="color:${G.color};text-shadow:0 0 18px ${G.color}">${G.g}</span>
+      <div class="text-left"><p class="font-orb text-3xl">${run.score}<span class="text-base text-slate-400">점</span></p><p class="text-sm font-bold" style="color:${G.color}">${G.title}</p></div>
+    </div>`;
+  if(S.preview){
+    after.innerHTML=`<button id="homeBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-slate-300">🏠 처음 화면으로</button>`;
+    $('#homeBtn').onclick=()=>{SFX.tap();screenMenu();};return;
+  }
+  const rec=loadRec(),left=leftOf(rec),best=bestRun(rec),BG=GRADES[best.gi];
+  after.innerHTML=`
     <div class="rounded-2xl border border-amber-400/60 bg-amber-400/10 p-4 mt-3 text-[13px]">
       <p>🏆 현재 최고 등급: <b style="color:${BG.color}">${BG.g}등급 (${best.sc}점)</b> → <b>${BG.prize}</b></p>
       <p class="mt-1 text-slate-300">${left>0?`남은 도전 기회 <b class="text-emerald-300">${left}번</b> — 더 높은 등급에 도전할 수 있어요!`:'🔒 도전 기회를 모두 사용해 기록이 최종 확정되었어요.'}</p>
     </div>
-    <div id="nameArea"></div>
     <button id="certBtn" class="btn-solid w-full rounded-2xl p-4 mt-3 text-base">🎁 선물 교환 인증서 보기</button>
     ${left>0?`<button id="retryBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-emerald-300 font-bold">🔁 다시 도전하기 (남은 기회 ${left}번)</button>`:''}
-    <button id="homeBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-slate-300">🏠 처음 화면으로</button>
-  </div>`;
-  typeText($('#endLog'),'ARGOS: "...인정하지. 너는 AI를 읽는 힘과 보는 힘을 모두 가졌다."',24);
+    <button id="homeBtn" class="btn-neon w-full rounded-2xl p-4 mt-3 text-sm text-slate-300">🏠 처음 화면으로</button>`;
   $('#certBtn').onclick=()=>{SFX.unlock();screenCert();};
   if($('#retryBtn'))$('#retryBtn').onclick=()=>{SFX.tap();screenMenu();};
   $('#homeBtn').onclick=()=>{SFX.tap();screenMenu();};
@@ -949,7 +1022,7 @@ function askName(area,onDone){
     </div>
     <input id="sname" maxlength="10" placeholder="이름" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-4 text-base outline-none focus:border-cyan-300">
     <p id="ptypeNote" class="text-[11px] text-slate-500 mt-2">※ 한 번 등록하면 학번·이름을 바꿀 수 없어요. 정확히 입력하세요!</p>
-    <button id="issueBtn" class="btn-solid w-full rounded-2xl p-4 mt-3 text-base">등록하고 인증서 발급</button></div>`;
+    <button id="issueBtn" class="btn-solid w-full rounded-2xl p-4 mt-3 text-base">등록하고 미션 시작</button></div>`;
   const msg=$('#sidMsg');let ptype='student';
   area.querySelectorAll('.ptype').forEach(b=>b.onclick=()=>{ptype=b.dataset.t;SFX.tap();
     area.querySelectorAll('.ptype').forEach(x=>x.classList.toggle('sel',x===b));
@@ -967,9 +1040,36 @@ function askName(area,onDone){
   };
 }
 
+/* 첫 도전 전 요원 등록 화면 */
+function screenRegister(){
+  stopLoop();clearInterval(clockTimer);
+  app.innerHTML=`<div class="fade-in pb-8 md:max-w-xl md:mx-auto">
+    <div class="text-center mt-6"><p class="text-4xl">🪪</p><p class="font-black text-xl mt-2">미션 시작 전 요원 등록</p>
+    <p class="text-sm text-slate-400 mt-1">도전 횟수와 선물 확인을 위해 학번과 이름이 필요해요</p></div>
+    <div id="regArea"></div>
+    <button id="regBack" class="btn-neon w-full rounded-2xl p-3 mt-3 text-sm text-slate-300">← 처음 화면으로</button></div>`;
+  askName($('#regArea'),()=>{
+    if(!teacherPreview&&!confirm(`1회차 도전을 시작할까요?\n시작하면 도전 기회 1회가 사용됩니다. (남은 기회 ${MAX_ATTEMPTS}번 → ${MAX_ATTEMPTS-1}번)`)){screenMenu();return;}
+    beginMission();});
+  $('#regBack').onclick=()=>{SFX.tap();screenMenu();};
+}
+
+/* 서버의 공식 기록으로 이 기기 기록을 맞춤 (폰에서 기록을 고쳐도 다시 덮어씀) */
+let certSynced=false;
+async function syncFromServer(){
+  const rec=loadRec();if(!rec.sid||!RECORD_URL)return false;
+  if(rec.pending){try{await sendPending();}catch(e){}}
+  let d;try{d=await api({action:'status',...who(rec)},2);}catch(e){return false;}
+  if(!d||d.status!=='ok')return false;
+  const r=loadRec(),before=JSON.stringify([r.used,r.claimed,bestRun(r)]);
+  mergeServer(r,d);saveRec(r);
+  return before!==JSON.stringify([r.used,r.claimed,bestRun(r)]);
+}
+
 /* 선물 교환 인증서 — 최고 기록 기준 */
 function screenCert(){
   stopLoop();clearInterval(clockTimer);
+  if(!certSynced){certSynced=true;syncFromServer().then(ch=>{if(ch&&$('#certArea'))screenCert();}).finally(()=>{setTimeout(()=>certSynced=false,3000);});}
   const rec=loadRec(),best=bestRun(rec);
   if(!best){screenMenu();return;}
   const G=GRADES[best.gi],left=leftOf(rec);
@@ -1047,7 +1147,7 @@ function screenCert(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-/* 선생님 전용: 선물 지급을 구글 시트에 기록 (같은 학번·같은 코드는 시트에서 자동으로 막음) */
+/* 선생님 전용: 선물 지급 기록 — 지급 등급은 서버에 저장된 공식 최고 기록으로만 결정 */
 function giveGift(){
   const rec=loadRec(),best=bestRun(rec);if(!best)return;
   const G=GRADES[best.gi];
@@ -1060,13 +1160,13 @@ function giveGift(){
       <button class="gtype btn-neon rounded-xl py-2.5 text-sm font-bold" data-t="student">🎒 학생</button>
       <button class="gtype btn-neon rounded-xl py-2.5 text-sm font-bold" data-t="staff">🧑‍🏫 교직원</button>
     </div>
-    ${rec.final?'':`<p class="text-[12px] text-amber-300 mt-2">⚠ 아직 도전이 남아 있어요. 기록하면 <b>최종 확정</b>되어 더 이상 도전할 수 없어요.</p>`}
     <div id="gSidWrap"><label class="block text-[11px] text-slate-400 mt-3">학번</label>
     <input id="gSid" inputmode="numeric" maxlength="5" value="${rec.ptype==='staff'?'':esc(rec.sid)}" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-3 text-base font-orb outline-none">
     <p id="gSidMsg" class="text-[12px] min-h-[18px] mt-1"></p></div>
     <label class="block text-[11px] text-slate-400 mt-3">이름</label>
     <input id="gName" maxlength="10" value="${esc(rec.sname)}" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-3 text-base outline-none">
-    <div class="mt-3 rounded-xl bg-black/30 p-3 text-[13px]">등급 <b style="color:${G.color}">${G.g}</b> · ${best.sc}점 · ${best.att}회차<br><span class="text-slate-300">${G.prize}</span></div>
+    <div class="mt-3 rounded-xl bg-black/30 p-3 text-[12.5px]">화면에 보이는 등급 <b style="color:${G.color}">${G.g}</b> · ${best.sc}점<br>
+      <span class="text-cyan-300">※ 실제 지급 등급은 <b>서버의 공식 기록</b>으로 정해져요.</span></div>
     <label class="block text-[11px] text-slate-400 mt-3">확인 교사</label>
     <div class="grid grid-cols-2 gap-2 mt-1">${GIFT_TEACHERS.map((t,i)=>`<label class="flex items-center justify-center gap-2 rounded-xl border border-cyan-500/40 p-2.5 text-sm cursor-pointer"><input type="radio" name="gT" value="${esc(t)}" ${i===0?'checked':''}>${esc(t)}</label>`).join('')}</div>
     <label class="block text-[11px] text-slate-400 mt-3">선생님 비밀번호(PIN)</label>
@@ -1081,8 +1181,7 @@ function giveGift(){
   const setType=t=>{gtype=t;ov.querySelectorAll('.gtype').forEach(b=>b.classList.toggle('sel',b.dataset.t===t));
     ov.querySelector('#gSidWrap').style.display=t==='staff'?'none':'';};
   ov.querySelectorAll('.gtype').forEach(b=>b.onclick=()=>{SFX.tap();setType(b.dataset.t);});
-  setType(gtype);
-  sid.oninput=showSid;showSid();
+  setType(gtype);sid.oninput=showSid;showSid();
   const say=(t,c)=>{res.className=`text-center font-bold text-[13.5px] mt-3 min-h-[22px] ${c}`;res.innerHTML=t;};
   ov.querySelector('#gX').onclick=()=>ov.remove();
   go.onclick=async()=>{
@@ -1091,58 +1190,89 @@ function giveGift(){
     if(gtype==='student'&&!r.ok){shakeEl(sid);return;}
     if(name.length<2){shakeEl(ov.querySelector('#gName'));return;}
     if(!pin){shakeEl(ov.querySelector('#gPin'));return;}
-    go.disabled=true;say('⏳ 구글 시트에 기록하는 중...','text-cyan-300');
-    const newSid=gtype==='staff'?STAFF_ID:sid.value;
-    const fixed=(newSid!==rec.sid||name!==rec.sname)?`학번·이름 수정(원래 ${rec.sid} ${rec.sname})`:'';
+    go.disabled=true;say('⏳ 서버 기록을 확인하는 중...','text-cyan-300');
     try{
-      const resp=await fetch(RECORD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body:JSON.stringify({pin,type:gtype,sid:newSid,name,code:best.code,score:best.sc,teacher,note:fixed})});
-      const d=await resp.json();
+      if(loadRec().pending)await sendPending();
+      const d=await api({action:'give',pin,teacher,type:gtype,sid:gtype==='staff'?'':sid.value,name,
+        fromType:rec.ptype==='staff'?'staff':'student',fromSid:rec.ptype==='staff'?'':rec.sid,fromName:rec.sname});
       if(d.status==='ok'){
-        const r2=loadRec();r2.final=true;r2.ptype=gtype;r2.sid=newSid;r2.sname=name;
+        const r2=loadRec();r2.final=true;r2.ptype=gtype;r2.sid=gtype==='staff'?STAFF_ID:sid.value;r2.sname=name;
         const now=new Date(nowMs());r2.claimed={at:`${pad(now.getMonth()+1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,teacher,grade:d.grade};
-        saveRec(r2);SFX.fanfare();confetti(140,true);ov.remove();screenCert();return;
+        saveRec(r2);SFX.fanfare();confetti(140,true);
+        say(`✅ 서버 공식 기록: <span style="color:${GRADES[gIndex(d.grade)].color}">${d.grade}등급 ${d.score}점</span><br><span class="text-[12.5px] font-normal">${esc(d.prize)}${d.sus?`<br><b class="text-amber-300">⚠ ${esc(d.sus)} — 확인 필요</b>`:''}</span>`,'text-emerald-300');
+        go.textContent='확인';go.disabled=false;go.onclick=()=>{ov.remove();screenCert();};return;
       }
       SFX.wrong();go.disabled=false;
-      const M={pin:'❌ 비밀번호가 틀렸어요',sid:`❌ ${esc(d.msg||'학번 형식 오류')}`,name:'❌ 이름을 확인해 주세요',code:'❌ 인증 코드가 올바르지 않아요 (위조 의심)',
-        dup:`⚠ 이미 선물을 받았어요 (${gtype==='staff'?'같은 성함의 교직원':'같은 학번'})<br><span class="text-[12px] font-normal">${esc(d.when||'')} · ${esc(d.teacher||'')} · ${esc(d.grade||'')}등급 · ${esc(d.name||'')}</span>`,
-        codeUsed:`⚠ 이 인증 코드는 이미 다른 학번(${esc(d.sid||'')} ${esc(d.name||'')})으로 받았어요`,error:`❌ 시트 오류: ${esc(d.msg||'')}`};
-      say(M[d.status]||'❌ 알 수 없는 오류', d.status==='dup'||d.status==='codeUsed'?'text-amber-300':'text-red-300');
+      const M={pin:'❌ 비밀번호가 틀렸어요',locked:'🔒 비밀번호를 여러 번 틀려 10분 동안 잠겼어요',sid:`❌ ${esc(d.msg||'학번 형식 오류')}`,name:'❌ 이름을 확인해 주세요',
+        norecord:'❌ 서버에 완료된 도전 기록이 없어요<br><span class="text-[12px] font-normal">화면이 조작됐거나, 결과가 아직 서버로 전송되지 않았어요</span>',
+        dup:`⚠ 이미 선물을 받았어요<br><span class="text-[12px] font-normal">${esc(d.when||'')} · ${esc(d.teacher||'')} · ${esc(d.grade||'')}등급 · ${esc(d.name||'')}</span>`,
+        error:`❌ 서버 오류: ${esc(d.msg||'')}`};
+      say(M[d.status]||'❌ 알 수 없는 오류', d.status==='dup'?'text-amber-300':'text-red-300');
     }catch(e){go.disabled=false;SFX.wrong();say('❌ 인터넷 연결을 확인해 주세요<br><span class="text-[12px] font-normal">급하면 엑셀 체크리스트에 직접 기록하세요</span>','text-red-300');}
   };
 }
 
 /* =========================================================
-   10. 교사용 도구 (메인 로고 5번 연속 탭) — 코드 검증 & 기기 기록 초기화
+   10. 교사용 도구 (메인 로고 5번 연속 탭) — 비밀번호를 서버에서 확인한 뒤에만 열림
 ========================================================= */
 function teacherVerify(){
   SFX.hint();
   const ov=document.createElement('div');
   ov.className='fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm px-6';
-  ov.innerHTML=`<div class="panel rounded-2xl p-5 w-full max-w-sm pop">
-    <p class="font-bold text-fuchsia-300">🧑‍🏫 교사용 코드 검증기</p>
-    <p class="text-xs text-slate-400 mt-1">인증 코드를 입력하면 위조 여부와 <b>코드에 숨겨진 실제 등급·회차</b>를 확인합니다. 인증서 내용과 다르면 조작된 화면입니다.</p>
-    <input id="vcode" placeholder="AI-2026-XXXX" autocapitalize="characters" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-4 mt-3 font-orb uppercase outline-none">
-    <p id="vres" class="text-center font-bold mt-3 min-h-[48px]"></p>
-    <div class="flex gap-2 mt-2"><button id="vgo" class="btn-solid flex-1 rounded-2xl p-3">검증</button><button id="vx" class="btn-neon rounded-2xl px-4">닫기</button></div>
-    <div class="mt-4 rounded-xl bg-black/30 p-3 text-[12px] text-slate-300">
-      <p>📅 참여 기간: <b>${PERIOD_LABEL}</b></p>
-      <p class="mt-0.5">🕒 현재 시각(서버 기준): <b>${fmtTime(new Date(nowMs()))}</b></p>
-      <p class="mt-0.5">상태: <b>${{before:'오픈 전',open:'참여 가능',closed:'종료'}[phase()]}</b>${teacherPreview?' (미리보기 모드)':''}</p>
-      <button id="vprev" class="btn-neon w-full rounded-xl p-2.5 mt-2 text-fuchsia-200 font-bold">${teacherPreview?'🧪 미리보기 모드 끄기':'🧪 교사 미리보기 모드 켜기 (기간 무시)'}</button>
-      <p class="text-[10.5px] text-slate-500 mt-1">이 브라우저 탭에서만 적용되고, 탭을 닫으면 자동으로 꺼져요.</p>
-    </div>
-    <button id="vreset" class="w-full mt-4 text-[12px] text-red-300/80 underline">🧹 이 기기의 도전 기록 초기화 (테스트용)</button></div>`;
   document.body.appendChild(ov);
-  ov.querySelector('#vgo').onclick=()=>{const v=verifyCode(ov.querySelector('#vcode').value);const r=ov.querySelector('#vres');
-    r.className=`text-center font-bold mt-3 min-h-[48px] ${v?'text-emerald-400':'text-red-400 glow-r'}`;
-    r.innerHTML=v?`✅ 정상 발급 코드<br><span style="color:${v.G.color}">${v.att}회차 · ${v.G.g}등급 · ${v.G.prize}</span>`:'❌ 위조 또는 잘못된 코드';v?SFX.correct():SFX.wrong();};
-  ov.querySelector('#vx').onclick=()=>ov.remove();
-  ov.querySelector('#vprev').onclick=()=>{teacherPreview=!teacherPreview;
-    try{teacherPreview?sessionStorage.setItem('agi_preview','1'):sessionStorage.removeItem('agi_preview');}catch(e){}
-    SFX.hint();ov.remove();screenMenu();};
-  ov.querySelector('#vreset').onclick=()=>{if(confirm('이 기기의 도전 횟수·기록·학번을 모두 지울까요?\n(선생님 테스트용 — 학생 기기에서는 사용하지 마세요)')){
-    clearRec();ov.remove();screenMenu();}};
+  const close=()=>ov.remove();
+  const gate=()=>{
+    ov.innerHTML=`<div class="panel rounded-2xl p-5 w-full max-w-sm pop">
+      <p class="font-bold text-fuchsia-300">🔒 교사용 도구</p>
+      <p class="text-xs text-slate-400 mt-1">선생님 비밀번호를 입력하세요.</p>
+      <input id="tPin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" class="w-full rounded-xl bg-black/50 border border-fuchsia-400/50 p-4 mt-3 font-orb outline-none tracking-[.4em]">
+      <p id="tRes" class="text-center text-[13px] font-bold mt-2 min-h-[20px]"></p>
+      <div class="flex gap-2 mt-2"><button id="tGo" class="btn-solid flex-1 rounded-2xl p-3">확인</button><button id="tX" class="btn-neon rounded-2xl px-4">닫기</button></div></div>`;
+    ov.querySelector('#tX').onclick=close;
+    ov.querySelector('#tGo').onclick=async()=>{
+      const pin=ov.querySelector('#tPin').value.trim(),res=ov.querySelector('#tRes');if(!pin)return;
+      res.className='text-center text-[13px] font-bold mt-2 min-h-[20px] text-cyan-300';res.textContent='확인 중...';
+      let d;try{d=await api({action:'auth',pin});}catch(e){res.textContent='인터넷 연결을 확인해 주세요';return;}
+      if(d.status==='ok'){teacherPin=pin;try{sessionStorage.setItem('agi_tpin',pin);}catch(e){}panel();}
+      else{SFX.wrong();res.className='text-center text-[13px] font-bold mt-2 min-h-[20px] text-red-300';
+        res.textContent=d.status==='locked'?'🔒 여러 번 틀려 10분 동안 잠겼어요':'❌ 비밀번호가 틀렸어요';}
+    };
+  };
+  const panel=()=>{
+    ov.innerHTML=`<div class="panel rounded-2xl p-5 w-full max-w-sm pop max-h-[92vh] overflow-y-auto">
+      <p class="font-bold text-fuchsia-300">🧑‍🏫 교사용 도구</p>
+      <p class="text-xs text-slate-400 mt-1">인증 코드를 넣으면 <b>서버의 공식 기록</b>(학번·이름·등급·회차·수령 여부)을 보여줘요.</p>
+      <input id="vcode" placeholder="AI-2026-XXXX" autocapitalize="characters" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-4 mt-3 font-orb uppercase outline-none">
+      <p id="vres" class="text-center font-bold mt-3 min-h-[48px] text-[13.5px]"></p>
+      <div class="flex gap-2 mt-2"><button id="vgo" class="btn-solid flex-1 rounded-2xl p-3">확인</button><button id="vx" class="btn-neon rounded-2xl px-4">닫기</button></div>
+      <div class="mt-4 rounded-xl bg-black/30 p-3 text-[12px] text-slate-300">
+        <p>📅 참여 기간: <b>${PERIOD_LABEL}</b></p>
+        <p class="mt-0.5">🕒 현재 시각(서버 기준): <b>${fmtTime(new Date(nowMs()))}</b></p>
+        <p class="mt-0.5">상태: <b>${{before:'오픈 전',open:'참여 가능',closed:'종료'}[phase()]}</b>${teacherPreview?' (미리보기 모드)':''}</p>
+        <button id="vprev" class="btn-neon w-full rounded-xl p-2.5 mt-2 text-fuchsia-200 font-bold">${teacherPreview?'🧪 미리보기 모드 끄기':'🧪 교사 미리보기 모드 켜기 (기간 무시)'}</button>
+        <p class="text-[10.5px] text-slate-500 mt-1">미리보기 도전은 서버에 '미리보기'로 따로 기록되고, 횟수·선물에는 포함되지 않아요. 이 탭을 닫으면 꺼져요.</p>
+      </div>
+      <button id="vreset" class="w-full mt-4 text-[12px] text-red-300/80 underline">🧹 이 기기의 화면 기록 지우기 (서버 기록은 그대로)</button>
+      <button id="vout" class="w-full mt-2 text-[12px] text-slate-400 underline">🔒 교사 도구 잠그기</button></div>`;
+    ov.querySelector('#vx').onclick=close;
+    ov.querySelector('#vgo').onclick=async()=>{
+      const r=ov.querySelector('#vres'),code=ov.querySelector('#vcode').value.trim();if(!code)return;
+      r.className='text-center font-bold mt-3 min-h-[48px] text-[13.5px] text-cyan-300';r.textContent='확인 중...';
+      let d;try{d=await api({action:'verify',pin:teacherPin,code});}catch(e){r.textContent='인터넷 연결을 확인해 주세요';return;}
+      if(d.status==='ok'){const G=GRADES[gIndex(d.grade)];SFX.correct();
+        r.className='text-center font-bold mt-3 min-h-[48px] text-[13.5px] text-emerald-300';
+        r.innerHTML=`✅ 서버에 있는 정상 코드${d.preview?' (미리보기)':''}<br><span class="text-white">${esc(d.sid)} ${esc(d.name)}</span> · <span style="color:${G.color}">${d.att}회차 ${d.grade}등급 ${d.score}점</span>
+          ${d.sus?`<br><span class="text-amber-300">⚠ ${esc(d.sus)}</span>`:''}<br><span class="text-[12px] font-normal">${d.received?`🎁 ${esc(d.received.when)} 수령 완료 (${esc(d.received.teacher)})`:'아직 선물 미수령'}</span>`;}
+      else{SFX.wrong();r.className='text-center font-bold mt-3 min-h-[48px] text-[13.5px] text-red-300';
+        r.textContent=d.status==='nocode'?'❌ 서버에 없는 코드예요 (위조 또는 오타)':d.status==='locked'?'🔒 잠김 (10분 후 다시)':'❌ 비밀번호를 다시 확인해 주세요';}
+    };
+    ov.querySelector('#vprev').onclick=()=>{teacherPreview=!teacherPreview;
+      try{teacherPreview?sessionStorage.setItem('agi_preview','1'):sessionStorage.removeItem('agi_preview');}catch(e){}
+      SFX.hint();close();screenMenu();};
+    ov.querySelector('#vreset').onclick=()=>{if(confirm('이 기기에 저장된 화면 기록(학번·도전 표시)을 지울까요?\n※ 서버의 공식 기록과 도전 횟수는 그대로 남아요.')){clearRec();close();screenMenu();}};
+    ov.querySelector('#vout').onclick=()=>{teacherPin='';teacherPreview=false;try{sessionStorage.removeItem('agi_tpin');sessionStorage.removeItem('agi_preview');}catch(e){}close();screenMenu();};
+  };
+  if(teacherPin)panel();else gate();
 }
 
 /* 시작 */
