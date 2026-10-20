@@ -89,7 +89,7 @@
 <div id="flash"></div>
 <canvas id="confetti"></canvas>
 
-<main id="app" class="relative z-10 mx-auto max-w-md min-h-screen px-4 pt-5 safe-b"></main>
+<main id="app" class="relative z-10 mx-auto max-w-md md:max-w-4xl lg:max-w-5xl min-h-screen px-4 md:px-8 pt-5 md:pt-8 safe-b"></main>
 
 <script>
 /* =========================================================
@@ -384,7 +384,7 @@ function argosSVG(size=110,color='#ef4444'){
 
 async function screenBoot(){
   app.innerHTML=`
-  <div class="fade-in flex flex-col min-h-[92vh]">
+  <div class="fade-in flex flex-col min-h-[92vh] md:max-w-2xl md:mx-auto">
     <div class="flex items-center justify-between text-[11px] font-mono2 text-cyan-400/70 mb-3">
       <span>CORE//SECURE-TERMINAL v26.10</span><span id="bootClock"></span>
     </div>
@@ -457,10 +457,11 @@ function screenMenu(){
       <p class="text-[12px] font-bold text-slate-300">🏫 ${SCHOOL} · ${EVENT_NAME}</p>
       <div id="logo" class="inline-block select-none mt-2">${argosSVG(84,'#06b6d4')}</div>
       <p class="font-orb text-cyan-400 text-xs tracking-[.3em] mt-1">PROJECT AGI</p>
-      <h1 class="text-[26px] font-black leading-tight mt-1 glow-c">잠긴 연구소의 문을 열어라!</h1>
+      <h1 class="text-[26px] md:text-4xl font-black leading-tight mt-1 glow-c">잠긴 연구소의 문을 열어라!</h1>
       <p class="text-slate-400 text-sm mt-2">7개 구역의 보안 프로토콜을 해제하고 탈출하세요</p>
     </div>
 
+    <div class="md:grid md:grid-cols-2 md:gap-6 md:items-start"><div>
     <div class="rounded-2xl border border-amber-400/60 bg-amber-400/10 p-4 mt-5">
       <p class="font-black text-amber-300">📢 참여 안내</p>
       <ul class="text-[13px] text-amber-50 mt-2 space-y-1.5 leading-relaxed">
@@ -489,7 +490,7 @@ function screenMenu(){
     </div>
 
     ${startArea}
-
+    </div><div>
     <div class="panel rounded-2xl p-4 mt-5">
       <p class="font-bold text-cyan-300 mb-2">🎁 탈출 등급 & 보상</p>
       <p class="text-[12px] text-slate-400 mb-2">점수 = 100 − 오답×10 − 힌트×5</p>
@@ -516,6 +517,7 @@ function screenMenu(){
     <div class="flex justify-center mt-4">
       <button id="muteBtn" class="btn-neon rounded-xl px-4 py-2 text-sm">${muted?'🔇 소리 꺼짐':'🔊 소리 켜짐'}</button>
     </div>
+    </div></div>
   </div>`;
   if(ph==='before'){clockTimer=setInterval(()=>{const e=$('#countdown');if(!e){clearInterval(clockTimer);return;}
     const ms=OPEN_AT.getTime()-nowMs();if(ms<=0){screenMenu();return;}e.textContent=fmtLeft(ms);},1000);}
@@ -554,27 +556,34 @@ function screenQuestion(){
       </div>
     </div>
 
-    <div class="panel rounded-2xl p-4 mt-3 relative overflow-hidden" id="qcard">
+    <div class="flex flex-col md:grid md:grid-cols-2 md:gap-x-6 md:items-start">
+    <div class="contents md:block md:col-start-1 md:row-start-1">
+    <div class="order-1 panel rounded-2xl p-4 md:p-6 mt-3 relative overflow-hidden" id="qcard">
       <div class="scanbar"></div>
       <p class="text-[11px] font-mono2 text-emerald-400 mb-2">${gLabel}</p>
-      <p id="qtext" class="text-[17px] font-bold leading-relaxed min-h-[84px]"></p>
+      <p id="qtext" class="text-[17px] md:text-xl font-bold leading-relaxed min-h-[84px] md:min-h-[140px]"></p>
     </div>
 
-    <div id="gimmick" class="mt-3"></div>
+    <div id="hintBox" class="order-3 hidden mt-3 rounded-2xl p-3 border border-amber-400/50 bg-amber-400/10 text-amber-200 text-sm pop"></div>
+    <div id="lockBox" class="order-4 hidden mt-3 rounded-2xl p-3 border border-red-500/70 bg-red-500/15 text-red-300 text-sm font-bold text-center"></div>
 
-    <div id="hintBox" class="hidden mt-3 rounded-2xl p-3 border border-amber-400/50 bg-amber-400/10 text-amber-200 text-sm pop"></div>
-    <div id="lockBox" class="hidden mt-3 rounded-2xl p-3 border border-red-500/70 bg-red-500/15 text-red-300 text-sm font-bold text-center"></div>
-
-    <div class="flex gap-2 mt-3">
+    <div class="order-5 flex gap-2 mt-3">
       <button id="hintBtn" class="btn-neon flex-1 rounded-2xl p-3 text-amber-300 font-bold text-sm">💡 힌트 열람 (−5점)</button>
       <button id="quitBtn" class="btn-neon rounded-2xl px-4 p-3 text-slate-400 text-sm">↩ 포기</button>
+    </div>
+    </div>
+    <div class="order-2 md:col-start-2 md:row-start-1">
+      <div id="gimmick" class="mt-3"></div>
+      <p id="kbdHint" class="hidden md:block text-[11.5px] text-slate-500 text-center mt-3"></p>
+    </div>
     </div>
   </div>`;
   const tickE=()=>{const e=$('#elapsed');if(e)e.textContent=fmtDur(Date.now()-S.start);};tickE();
   clearInterval(elapsedTimer);elapsedTimer=setInterval(tickE,1000);
   $('#qcard').onclick=skipTyping;
   typeText($('#qtext'),(q.type==='ox'?'[참일까, 거짓일까?] ':'')+q.q,16);
-  renderGimmick(q);
+  curKey=null;renderGimmick(q);
+  const kh=$('#kbdHint');if(kh)kh.textContent=KBD_HINT[q.gimmick]||'';
   updateHintBtn();
   $('#hintBtn').onclick=()=>useHint(q);
   $('#quitBtn').onclick=()=>{if(confirm('미션을 포기할까요?\n이번 도전은 기회 1회를 사용한 것으로 처리됩니다.')){clearInterval(elapsedTimer);stopLoop();screenMenu();}};
@@ -774,7 +783,41 @@ const GIMMICKS={
     $('#wclr').onclick=()=>{if(S.locked)return;SFX.tap();clear();};
   },
 };
-function renderGimmick(q){GIMMICKS[q.gimmick](q,$('#gimmick'));}
+/* ---------- 노트북용 키보드 조작 ---------- */
+const KBD_HINT={
+  choice:'⌨️ 숫자 키 1~4로 선택', keypad:'⌨️ 숫자 키 1~4 입력 후 Enter (Backspace: 지우기)',
+  slider:'⌨️ ← → 키로 맞추고 Enter', wire:'⌨️ 숫자 키 1~4로 회로 절단',
+  hold:'🖱️ 마우스 왼쪽 버튼으로 1초간 꾹 누르세요', drag:'🖱️ 열쇠를 마우스로 끌어다 놓거나, 클릭한 뒤 포트를 클릭',
+  target:'🖱️ 움직이는 버그를 마우스로 클릭!', timing:'⌨️ 스페이스바 또는 Enter로 STOP',
+  swipe:'🖱️ 카드를 좌우로 끌기 · ⌨️ ← 거짓 / → 참', word:'🖱️ 글자 조각을 순서대로 클릭 · ⌨️ Backspace로 한 칸 지우기',
+};
+let curKey=null;
+const numKey=e=>{const n=parseInt(e.key,10);return n>=1&&n<=4?n-1:-1;};
+function bindKeys(q,g){
+  const click=sel=>{const el=g.querySelector(sel);if(el&&!el.disabled)el.click();};
+  const map={
+    choice:e=>{const i=numKey(e);if(i>=0)click(`.opt[data-i="${i}"]`);},
+    keypad:e=>{const i=numKey(e);if(i>=0)click(`.kp[data-n="${i+1}"]`);else if(e.key==='Enter')click('.kpe');else if(e.key==='Backspace'||e.key==='Delete')click('.kpc');},
+    slider:e=>{const sl=$('#sl'),i=numKey(e);let v=+sl.value;
+      if(e.key==='Enter'){click('#slGo');return;}
+      if(e.key==='ArrowLeft')v--;else if(e.key==='ArrowRight')v++;else if(i>=0)v=i+1;else return;
+      sl.value=Math.max(1,Math.min(4,v));sl.oninput();},
+    wire:e=>{const i=numKey(e);if(i>=0)click(`.wire[data-i="${i}"]`);},
+    timing:e=>{if(e.key===' '||e.key==='Enter')click('#tstop');},
+    swipe:e=>{const k=e.key.toLowerCase();if(k==='arrowleft'||k==='x')click('.oxb[data-v="0"]');else if(k==='arrowright'||k==='o')click('.oxb[data-v="1"]');},
+    word:e=>{if(e.key==='Backspace'){const f=[...g.querySelectorAll('.slot')].filter(s=>s.textContent);if(f.length)f[f.length-1].click();}},
+  };
+  curKey=map[q.gimmick]||null;
+}
+document.addEventListener('keydown',e=>{
+  if(e.repeat||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+  const ov=document.querySelector('.fixed.inset-0.z-40');
+  if(ov){ // 정답 화면: Enter/스페이스로 다음
+    if((e.key==='Enter'||e.key===' ')&&!ov.querySelector('input')){const b=ov.querySelector('button.btn-solid');if(b){e.preventDefault();b.click();}}
+    return;}
+  if(curKey&&$('#gimmick')&&S&&!S.locked&&/^([1-4]|Enter| |Backspace|Delete|Arrow(Left|Right)|[xXoO])$/.test(e.key)){e.preventDefault();curKey(e);}
+});
+function renderGimmick(q){const g=$('#gimmick');GIMMICKS[q.gimmick](q,g);bindKeys(q,g);}
 
 function updateHintBtn(){
   const b=$('#hintBtn');if(!b)return;clearInterval(hintTimer);
@@ -841,7 +884,7 @@ async function screenEscape(){
   const improved=!prevBest||isBest&&(gi<prevBest.gi||(gi===prevBest.gi&&sc>prevBest.sc));
   const left=leftOf(rec),best=bestRun(rec),BG=GRADES[best.gi];
   app.innerHTML=`
-  <div class="fade-in pb-8">
+  <div class="fade-in pb-8 md:max-w-xl md:mx-auto">
     <div class="text-center mt-4">
       <div class="text-6xl pop">🚪✨</div>
       <p class="font-orb text-emerald-400 glow-e text-xl mt-2">LOCKDOWN RELEASED</p>
@@ -899,7 +942,7 @@ function screenCert(){
   const rec=loadRec(),best=bestRun(rec);
   if(!best){screenMenu();return;}
   const G=GRADES[best.gi],left=leftOf(rec);
-  app.innerHTML=`<div class="fade-in pb-8"><div id="certArea"></div><div id="certBtns"></div></div>`;
+  app.innerHTML=`<div class="fade-in pb-8 md:max-w-xl md:mx-auto"><div id="certArea"></div><div id="certBtns"></div></div>`;
   if(!rec.sid){
     $('#certArea').innerHTML=`<div class="text-center mt-6"><p class="text-4xl">🪪</p><p class="font-black text-xl mt-2">인증서 발급 전 요원 등록</p><p class="text-sm text-slate-400 mt-1">선물 수령 확인을 위해 학번과 이름이 필요해요</p></div>`;
     const a=document.createElement('div');$('#certArea').appendChild(a);askName(a,screenCert);return;
