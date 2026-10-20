@@ -97,11 +97,15 @@
    점수 = 100 - (오답 × 10) - (힌트 × 5)
 ========================================================= */
 const GRADES=[
-  {g:'S',min:100,title:'레전드 화이트해커',prize:'🏆 S등급 특별 선물',color:'#facc15'},
-  {g:'A',min:85, title:'엘리트 해커',      prize:'🎁 A등급 선물',     color:'#06b6d4'},
-  {g:'B',min:70, title:'정예 요원',        prize:'🍫 B등급 선물',     color:'#10b981'},
-  {g:'C',min:0,  title:'견습 요원',        prize:'🍬 참가 선물',      color:'#a855f7'},
+  {g:'S',min:100,title:'레전드 화이트해커',prize:'🍬 하리보 젤리 + 🖊️ 볼펜 + 🟡 스트레스볼 + 📒 스터디플래너',color:'#facc15'},
+  {g:'A',min:85, title:'엘리트 해커',      prize:'🍬 하리보 젤리 + 🖊️ 볼펜 + 🟡 스트레스볼',color:'#06b6d4'},
+  {g:'B',min:70, title:'정예 요원',        prize:'🍬 하리보 젤리 + 🖊️ 볼펜',color:'#10b981'},
+  {g:'C',min:0,  title:'견습 요원',        prize:'🍬 하리보 젤리',color:'#a855f7'},
 ];
+// 참여 가능 기간 (한국 시간). 이 기간 밖에는 '미션 시작'이 잠기고, 인증서 보기만 가능
+const OPEN_AT =new Date('2026-10-26T00:00:00+09:00');
+const CLOSE_AT=new Date('2026-10-30T23:59:59+09:00');
+const PERIOD_LABEL='10. 26.(월) ~ 10. 30.(금)';
 const MISSION_COUNT=7;          // 출제 문항 수 (구역당 1문제)
 const WRONG_LOCK_SEC=3;         // 오답 시 잠금 시간(초)
 const HINT_COOLDOWN_SEC=5;      // 힌트 쿨타임(초)
@@ -301,6 +305,23 @@ function clearRec(){memRec=null;try{localStorage.removeItem(STORE_KEY);}catch(e)
 function bestRun(r){return r.runs.reduce((b,x)=>(!b||x.gi<b.gi||(x.gi===b.gi&&x.sc>b.sc))?x:b,null);}
 const leftOf=r=>r.final?0:Math.max(0,MAX_ATTEMPTS-r.used);
 
+/* 참여 기간 확인 — 폰 시계를 바꿔도 소용없도록 서버(GitHub) 시각 기준 */
+let timeOffset=0,teacherPreview=false;
+try{teacherPreview=sessionStorage.getItem('agi_preview')==='1';}catch(e){}
+const nowMs=()=>Date.now()+timeOffset;
+function phase(){if(teacherPreview)return 'open';const n=nowMs();return n<OPEN_AT.getTime()?'before':n>CLOSE_AT.getTime()?'closed':'open';}
+function syncTime(){
+  if(!/^https?:/.test(location.protocol))return;
+  const before=phase();
+  fetch(location.href,{method:'HEAD',cache:'no-store'}).then(r=>{
+    const t=new Date(r.headers.get('Date')).getTime();
+    if(!isNaN(t))timeOffset=t-Date.now();
+    if(phase()!==before&&$('#menuRoot'))screenMenu();
+  }).catch(()=>{});
+}
+function fmtLeft(ms){const s=Math.max(0,Math.floor(ms/1000)),d=Math.floor(s/86400);
+  return `${d>0?`D-${d} · `:''}${pad(Math.floor(s%86400/3600))}:${pad(Math.floor(s%3600/60))}:${pad(s%60)}`;}
+
 /* =========================================================
    5. 게임 상태 & 출제
 ========================================================= */
@@ -412,9 +433,26 @@ async function screenBoot(){
 let logoTaps=0,logoTapT=0;
 function screenMenu(){
   clearInterval(clockTimer);stopLoop();
-  const rec=loadRec(),left=leftOf(rec),best=bestRun(rec),BG=best?GRADES[best.gi]:null;
+  const rec=loadRec(),left=leftOf(rec),best=bestRun(rec),BG=best?GRADES[best.gi]:null,ph=phase();
+  let startArea;
+  if(ph==='before')startArea=`<div class="w-full rounded-2xl p-5 mt-4 text-center border border-cyan-400/60 bg-cyan-400/10">
+      <p class="text-lg font-black text-cyan-200">🔒 아직 연구소 문이 잠겨 있어요</p>
+      <p class="text-[13px] text-slate-300 mt-1"><b class="text-cyan-200">${PERIOD_LABEL}</b> 기간에만 도전할 수 있어요</p>
+      <p class="font-orb text-2xl text-cyan-300 glow-c mt-3" id="countdown">${fmtLeft(OPEN_AT.getTime()-nowMs())}</p>
+      <p class="text-[11px] text-slate-500 mt-1">10월 26일(월) 0시 오픈까지</p></div>`;
+  else if(ph==='closed')startArea=`<div class="w-full rounded-2xl p-5 mt-4 text-center border border-slate-500/60 bg-slate-500/10">
+      <p class="text-lg font-black text-slate-200">🏁 교육주간이 끝났어요</p>
+      <p class="text-[13px] text-slate-300 mt-1">참여해 주셔서 고마워요! (${PERIOD_LABEL})${best?'<br>위의 인증서 보기로 내 기록을 확인할 수 있어요.':''}</p></div>`;
+  else if(left>0)startArea=`<button id="startBtn" class="btn-solid w-full rounded-2xl p-5 mt-4 text-left pulse-ring">
+      <div class="flex items-center justify-between"><span class="text-xl">⚡ 보안 해제 미션 시작</span><span class="font-orb text-sm">${MAX_ATTEMPTS-left+1}회차</span></div>
+      <div class="text-[13px] font-medium opacity-80 mt-0.5">${quizData.length}문항 중 ${MISSION_COUNT}문제 랜덤 출제 · 약 5분 · 남은 기회 ${left}번</div>
+    </button>`;
+  else startArea=`<div class="w-full rounded-2xl p-5 mt-4 text-center border border-red-500/60 bg-red-500/10">
+      <p class="text-lg font-black text-red-300">🔒 도전이 종료되었어요</p>
+      <p class="text-[13px] text-slate-300 mt-1">${best?`위의 인증서를 ${PICKUP_PLACE}에 보여주고 선물을 받으세요!`:'도전 기회를 모두 사용했어요.'}</p></div>`;
   app.innerHTML=`
-  <div class="fade-in pb-6">
+  <div class="fade-in pb-6" id="menuRoot">
+    ${teacherPreview?`<div class="rounded-xl bg-fuchsia-500/20 border border-fuchsia-400/60 text-fuchsia-200 text-[12px] font-bold text-center py-2 mb-2">🧪 교사 미리보기 모드 — 참여 기간 제한 없이 작동 중</div>`:''}
     <div class="text-center mt-2">
       <p class="text-[12px] font-bold text-slate-300">🏫 ${SCHOOL} · ${EVENT_NAME}</p>
       <div id="logo" class="inline-block select-none mt-2">${argosSVG(84,'#06b6d4')}</div>
@@ -426,6 +464,7 @@ function screenMenu(){
     <div class="rounded-2xl border border-amber-400/60 bg-amber-400/10 p-4 mt-5">
       <p class="font-black text-amber-300">📢 참여 안내</p>
       <ul class="text-[13px] text-amber-50 mt-2 space-y-1.5 leading-relaxed">
+        <li>📅 참여 기간: <b class="text-amber-300">${PERIOD_LABEL}</b></li>
         <li>🎟️ 도전 기회는 <b class="text-amber-300">1인당 ${MAX_ATTEMPTS}번</b>이에요.</li>
         <li>🏆 ${MAX_ATTEMPTS}번 중 <b class="text-amber-300">가장 높은 등급</b>으로 선물을 받아요.</li>
         <li>🎁 선물은 <b class="text-amber-300">한 번만</b> 받을 수 있어요. 도전을 마치면 <b>'도전 종료'</b>를 누르고 인증서를 보여주세요.</li>
@@ -449,12 +488,7 @@ function screenMenu(){
       ${zones.map(z=>`<div class="panel rounded-xl py-2 text-center"><div class="text-lg">${z.icon}</div><div class="text-[9px] font-mono2 text-cyan-300/80">Z${z.id}</div></div>`).join('')}
     </div>
 
-    ${left>0?`<button id="startBtn" class="btn-solid w-full rounded-2xl p-5 mt-4 text-left pulse-ring">
-      <div class="flex items-center justify-between"><span class="text-xl">⚡ 보안 해제 미션 시작</span><span class="font-orb text-sm">${MAX_ATTEMPTS-left+1}회차</span></div>
-      <div class="text-[13px] font-medium opacity-80 mt-0.5">${quizData.length}문항 중 ${MISSION_COUNT}문제 랜덤 출제 · 약 5분 · 남은 기회 ${left}번</div>
-    </button>`:`<div class="w-full rounded-2xl p-5 mt-4 text-center border border-red-500/60 bg-red-500/10">
-      <p class="text-lg font-black text-red-300">🔒 도전이 종료되었어요</p>
-      <p class="text-[13px] text-slate-300 mt-1">${best?`위의 인증서를 ${PICKUP_PLACE}에 보여주고 선물을 받으세요!`:'도전 기회를 모두 사용했어요.'}</p></div>`}
+    ${startArea}
 
     <div class="panel rounded-2xl p-4 mt-5">
       <p class="font-bold text-cyan-300 mb-2">🎁 탈출 등급 & 보상</p>
@@ -462,9 +496,10 @@ function screenMenu(){
       <div class="space-y-1.5">
         ${GRADES.map((x,i)=>`<div class="flex items-center gap-3 rounded-xl bg-black/30 px-3 py-2">
           <span class="font-orb font-black text-xl w-6 text-center" style="color:${x.color};text-shadow:0 0 10px ${x.color}">${x.g}</span>
-          <span class="text-[13px] flex-1">${x.title}<br><span class="text-slate-500 text-[11px]">${i===0?'만점(100점)':`${x.min}점 이상`}</span></span>
-          <span class="text-[13px] font-bold text-right">${x.prize}</span></div>`).join('')}
+          <span class="text-[13px] flex-1">${x.title} <span class="text-slate-500 text-[11px]">${i===0?'만점(100점)':i===GRADES.length-1?'탈출 성공':`${x.min}점 이상`}</span>
+          <br><b class="text-[12px]" style="color:${x.color}">${x.prize}</b></span></div>`).join('')}
       </div>
+      <p class="text-[11px] text-slate-400 mt-2">※ 탈출에 성공하면 누구나 하리보 젤리! 등급이 오를수록 선물이 하나씩 추가돼요.</p>
     </div>
 
     <div class="panel rounded-2xl p-4 mt-4 text-[13px] text-slate-300 leading-relaxed">
@@ -482,7 +517,10 @@ function screenMenu(){
       <button id="muteBtn" class="btn-neon rounded-xl px-4 py-2 text-sm">${muted?'🔇 소리 꺼짐':'🔊 소리 켜짐'}</button>
     </div>
   </div>`;
+  if(ph==='before'){clockTimer=setInterval(()=>{const e=$('#countdown');if(!e){clearInterval(clockTimer);return;}
+    const ms=OPEN_AT.getTime()-nowMs();if(ms<=0){screenMenu();return;}e.textContent=fmtLeft(ms);},1000);}
   if($('#startBtn'))$('#startBtn').onclick=()=>{
+    if(phase()!=='open'){screenMenu();return;} // 화면을 열어둔 채 기간이 끝난 경우
     if(!confirm(`${MAX_ATTEMPTS-left+1}회차 도전을 시작할까요?\n시작하면 도전 기회 1회가 사용됩니다. (남은 기회 ${left}번 → ${left-1}번)`))return;
     SFX.unlock();newGame();screenQuestion();};
   if($('#myCertBtn'))$('#myCertBtn').onclick=()=>{SFX.tap();screenCert();};
@@ -944,18 +982,29 @@ function teacherVerify(){
     <input id="vcode" placeholder="AI-2026-XXXX" autocapitalize="characters" class="w-full rounded-xl bg-black/50 border border-cyan-500/40 p-4 mt-3 font-orb uppercase outline-none">
     <p id="vres" class="text-center font-bold mt-3 min-h-[48px]"></p>
     <div class="flex gap-2 mt-2"><button id="vgo" class="btn-solid flex-1 rounded-2xl p-3">검증</button><button id="vx" class="btn-neon rounded-2xl px-4">닫기</button></div>
+    <div class="mt-4 rounded-xl bg-black/30 p-3 text-[12px] text-slate-300">
+      <p>📅 참여 기간: <b>${PERIOD_LABEL}</b></p>
+      <p class="mt-0.5">🕒 현재 시각(서버 기준): <b>${fmtTime(new Date(nowMs()))}</b></p>
+      <p class="mt-0.5">상태: <b>${{before:'오픈 전',open:'참여 가능',closed:'종료'}[phase()]}</b>${teacherPreview?' (미리보기 모드)':''}</p>
+      <button id="vprev" class="btn-neon w-full rounded-xl p-2.5 mt-2 text-fuchsia-200 font-bold">${teacherPreview?'🧪 미리보기 모드 끄기':'🧪 교사 미리보기 모드 켜기 (기간 무시)'}</button>
+      <p class="text-[10.5px] text-slate-500 mt-1">이 브라우저 탭에서만 적용되고, 탭을 닫으면 자동으로 꺼져요.</p>
+    </div>
     <button id="vreset" class="w-full mt-4 text-[12px] text-red-300/80 underline">🧹 이 기기의 도전 기록 초기화 (테스트용)</button></div>`;
   document.body.appendChild(ov);
   ov.querySelector('#vgo').onclick=()=>{const v=verifyCode(ov.querySelector('#vcode').value);const r=ov.querySelector('#vres');
     r.className=`text-center font-bold mt-3 min-h-[48px] ${v?'text-emerald-400':'text-red-400 glow-r'}`;
     r.innerHTML=v?`✅ 정상 발급 코드<br><span style="color:${v.G.color}">${v.att}회차 · ${v.G.g}등급 · ${v.G.prize}</span>`:'❌ 위조 또는 잘못된 코드';v?SFX.correct():SFX.wrong();};
   ov.querySelector('#vx').onclick=()=>ov.remove();
+  ov.querySelector('#vprev').onclick=()=>{teacherPreview=!teacherPreview;
+    try{teacherPreview?sessionStorage.setItem('agi_preview','1'):sessionStorage.removeItem('agi_preview');}catch(e){}
+    SFX.hint();ov.remove();screenMenu();};
   ov.querySelector('#vreset').onclick=()=>{if(confirm('이 기기의 도전 횟수·기록·학번을 모두 지울까요?\n(선생님 테스트용 — 학생 기기에서는 사용하지 마세요)')){
     clearRec();ov.remove();screenMenu();}};
 }
 
 /* 시작 */
 document.addEventListener('pointerdown',()=>ac(),{once:true});
+syncTime();setInterval(syncTime,5*60*1000);
 screenBoot();
 </script>
 </body>
