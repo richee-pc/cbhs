@@ -607,36 +607,6 @@ function renderBoard(){
     ${body}
     <p class="text-[10px] text-slate-500 mt-2 text-right">${phase()==='before'?'10월 26일(월) 오픈 후 집계 시작 · ':''}${boardData?boardData.at+' 기준 · ':''}1분마다 자동 갱신</p>`;
 }
-function renderBoard(){
-  const el=$('#boardBox');if(!el)return;
-  const mine=myClass();if(!boardGrade)boardGrade=mine&&BOARD_GRADES.includes(mine.g)?mine.g:BOARD_GRADES[0];
-  const g=boardGrade,list=boardData&&boardData.grades&&boardData.grades[g];
-  const tabs=BOARD_GRADES.map(x=>`<button data-bg="${x}" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold ${x===g?'bg-cyan-400 text-slate-900':'bg-black/30 text-slate-300'}">${x}학년${mine&&mine.g===x?' ★':''}</button>`).join('');
-  let body;
-  if(!list)body=`<p class="text-center text-[12px] text-slate-400 py-6">📡 랭킹 불러오는 중…</p>`;
-  else{
-    const rows=[...list].sort((a,b)=>b.rate-a.rate||b.n-a.n||a.c-b.c);
-    let rank=0,prev=null;
-    body=rows.map((r,i)=>{
-      if(r.rate!==prev){rank=i+1;prev=r.rate;}
-      const me=mine&&mine.g===g&&mine.c===r.c;
-      const medal=r.n>0&&rank<=3?['🥇','🥈','🥉'][rank-1]:`<span class="font-orb text-[11px] text-slate-500">${rank}</span>`;
-      return `<div class="flex items-center gap-2 rounded-lg px-2 py-1 ${me?'bg-amber-400/15 ring-1 ring-amber-400/70':''}">
-        <span class="w-6 text-center">${medal}</span>
-        <span class="w-11 text-[12px] font-bold ${me?'text-amber-300':''}">${r.c}반</span>
-        <span class="flex-1 h-2.5 rounded-full bg-slate-800 overflow-hidden"><span class="block h-full rounded-full ${me?'bg-amber-400':'bg-cyan-400'}" style="width:${Math.min(100,r.rate)}%;${r.rate?'box-shadow:0 0 8px currentColor':''}"></span></span>
-        <span class="w-[84px] text-right text-[11px] font-mono2 ${me?'text-amber-200':'text-slate-300'}">${r.n}/${r.size}명 <b>${r.rate}%</b></span>
-      </div>`;}).join('');
-    const myRow=mine&&mine.g===g?rows.find(r=>r.c===mine.c):null;
-    if(myRow){const myRank=rows.filter(r=>r.rate>myRow.rate).length+1;
-      body=`<p class="text-[12px] text-amber-200 mb-1.5">⭐ 우리 반(${g}-${mine.c}) 현재 <b>${myRank}위</b> · 참여율 ${myRow.rate}%</p>`+body;}
-  }
-  el.innerHTML=`<p class="font-bold text-cyan-300">🏆 반별 참여율 실시간 랭킹</p>
-    <p class="text-[11px] text-slate-400 mt-0.5 mb-2">학년별 참여율 1위 반에는 <b class="text-amber-300">간식 선물</b>이! (도전을 끝까지 마친 학생 수 ÷ 반 인원)</p>
-    <div class="flex gap-1.5 mb-2">${tabs}</div>
-    <div class="space-y-1">${body}</div>
-    <p class="text-[10px] text-slate-500 mt-2 text-right">${phase()==='before'?'10월 26일(월) 오픈 후 집계 시작 · ':''}${boardData?boardData.at+' 기준 · ':''}1분마다 자동 갱신</p>`;
-}
 
 /* =========================================================
    8. 화면: 문제
