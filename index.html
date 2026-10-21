@@ -139,7 +139,7 @@ const quizData = [
   {id:2,zone:1,ref:"Q25",type:'mc',q:"생성형 AI가 마치 사실인 것처럼 그럴듯하게 거짓 정보를 지어내는 현상을 무엇이라고 부를까요?",options:["할루시네이션(환각)","딥페이크","오버클럭","바이브코딩"],answer:0,hint:"영어로 '환각'을 뜻하는 단어입니다."},
   {id:3,zone:1,ref:"Q24",type:'mc',q:"거대언어모델(LLM)이 방대한 빅데이터를 처리할 때 글자를 쪼개는 가장 작은 단위를 무엇이라 할까요?",options:["바이트","토큰(Token)","픽셀","알고리즘"],answer:1,hint:"놀이공원에서 쓰던 코인이나 표를 생각해보세요."},
   {id:4,zone:1,ref:"Q12",type:'mc',q:"2024년 노벨 화학상은 단백질 구조를 예측한 AI 연구자들에게 돌아갔습니다. 구글 딥마인드가 만든 이 AI의 이름은?",options:["알파고","알파폴드","제미나이","챗GPT"],answer:1,hint:"단백질이 '접히는(Fold)' 구조를 해석했습니다."},
-  {id:5,zone:1,ref:"Q9",type:'ox',q:"딥러닝은 머신러닝의 한 분야로, 인공신경망을 여러 층 깊게(Deep) 쌓아 학습하는 기술이다.",answer:true,hint:"AI ⊃ 머신러닝 ⊃ 딥러닝의 포함 관계를 떠올려 보세요.",explain:"AI 안에 머신러닝이, 머신러닝 안에 딥러닝이 포함됩니다."},
+  {id:5,zone:1,ref:"Q9",type:'ox',q:"딥러닝은 머신러닝보다 더 넓은 개념으로, 머신러닝을 그 안에 포함하는 상위 분야이다.",answer:false,hint:"AI ⊃ 머신러닝 ⊃ 딥러닝의 포함 관계를 떠올려 보세요.",explain:"거꾸로예요! AI 안에 머신러닝이, 머신러닝 안에 딥러닝이 포함됩니다. 딥러닝은 인공신경망을 깊게 쌓아 학습하는 머신러닝의 한 분야예요."},
   {id:6,zone:1,ref:"1강",type:'ox',q:"책에서 말하는 'AX'는 'AI 대전환(AI Transformation)'을 뜻한다.",answer:true,hint:"DX(디지털 전환)의 다음 단계예요.",explain:"AX는 AI Transformation, 즉 AI가 사회·산업 전반을 바꾸는 'AI 대전환'입니다."},
   {id:7,zone:1,ref:"Q10",type:'word',q:"1950년 '기계는 생각할 수 있는가?'라는 위대한 질문을 던진 컴퓨터 과학의 아버지, 앨런 ○○은?",word:"튜링",decoys:["뉴","턴","잡"],hint:"'○○ 테스트'로도 유명해요."},
 
@@ -156,7 +156,7 @@ const quizData = [
   {id:15,zone:3,ref:"Q52",type:'mc',q:"AI 데이터센터에 막대한 전력을 탄소 배출 없이 안정적으로 공급할 방안으로 주목받는 소형 원자로는?",options:["풍력 발전","화력 발전","SMR","수력 발전"],answer:2,hint:"Small Modular Reactor(소형 모듈형 원자로)의 약자입니다."},
   {id:16,zone:3,ref:"Q59",type:'mc',q:"휴머노이드 로봇처럼 물리적인 몸을 갖고 현실 세계에서 직접 움직이며 일하는 AI를 무엇이라 할까요?",options:["소프트웨어 AI","메타버스 AI","피지컬 AI","클라우드 AI"],answer:2,hint:"'신체적, 물리적'을 뜻하는 영단어 Physical입니다."},
   {id:17,zone:3,ref:"Q71",type:'mc',q:"질문에 답만 하는 생성형 AI를 넘어, 스스로 목표를 세우고 계획해 여러 작업을 직접 실행하는 AI는?",options:["에이전틱 AI","계산기 AI","아날로그 AI","오프라인 AI"],answer:0,hint:"에이전트(Agent)는 '대리인'이라는 뜻이에요."},
-  {id:18,zone:3,ref:"Q67",type:'ox',q:"온디바이스 AI는 클라우드 서버를 거치지 않고 스마트폰 같은 기기 안에서 직접 AI를 실행하는 기술이다.",answer:true,hint:"On-Device = 기기 위에서!",explain:"책 6.3은 AI가 '클라우드에서 온디바이스로' 옮겨 오고 있다고 설명합니다."},
+  {id:18,zone:3,ref:"Q67",type:'ox',q:"온디바이스 AI는 반드시 클라우드 서버에 접속해야만 AI를 실행할 수 있는 기술이다.",answer:false,hint:"On-Device = 기기 위에서!",explain:"온디바이스 AI는 서버를 거치지 않고 스마트폰 같은 기기 안에서 직접 AI를 실행해요. 책 6.3은 AI가 '클라우드에서 온디바이스로' 옮겨 오고 있다고 설명합니다."},
   {id:19,zone:3,ref:"Q54",type:'ox',q:"AI 데이터센터는 전기만 쓸 뿐, 물은 거의 사용하지 않는다.",answer:false,hint:"뜨거워진 서버를 무엇으로 식힐까요?",explain:"서버 열을 식히는 데 막대한 냉각수가 쓰여 '물 먹는 AI'와 환경불평등 문제가 제기됩니다."},
   {id:20,zone:3,ref:"5.3",type:'word',q:"책 5.3의 제목을 완성하세요. \"사람은 밥과 물을 먹고, AI는 ○○과 물을 먹고 산다\"",word:"전기",decoys:["석","유","빛"],hint:"데이터센터가 엄청나게 소비하는 에너지예요."},
 
@@ -182,8 +182,8 @@ const quizData = [
   {id:35,zone:6,ref:"Q143",type:'mc',q:"AI 딥러닝으로 특정 인물의 얼굴이나 음성을 합성해, 현실과 구분이 안 될 만큼 진짜처럼 조작하는 기술은?",options:["딥페이크","블록체인","크롤링","렌더링"],answer:0,hint:"Deep learning + Fake의 합성어입니다."},
   {id:36,zone:6,ref:"Q146",type:'mc',q:"다음 중 딥페이크 영상을 의심해볼 수 있는 관찰 포인트가 아닌 것은?",options:["눈 깜빡임이 부자연스럽거나 거의 없다.","손가락 개수나 귀걸이 모양이 이상하다.","영상의 재생 시간이 3분을 넘는다.","목과 턱 경계의 피부 톤이 어색하게 번져 있다."],answer:2,hint:"재생 시간이 길다고 가짜 영상인 것은 아닙니다.",df:true},
   {id:37,zone:6,ref:"Q141",type:'mc',q:"'개인정보(Private data)'와 '낚시(Fishing)'를 합친 말로, 가짜 문자·메일로 정보를 빼내는 사기 수법은?",options:["피싱","크롤링","스트리밍","해시태그"],answer:0,hint:"정보를 '낚아' 갑니다. 전화로 하면 '보이스○○'!"},
-  {id:38,zone:6,ref:"Q138",type:'ox',q:"생각이 비슷한 사람들끼리만 소통하면서 자기 의견이 메아리처럼 증폭·강화되는 현상을 '에코체임버'라고 한다.",answer:true,hint:"Echo는 '메아리', Chamber는 '방'이에요.",explain:"책 11.2는 필터버블과 에코체임버를 함께 다룹니다."},
-  {id:39,zone:6,ref:"Q146",type:'ox',q:"딥페이크 성착취물은 직접 만들지 않고 단순히 소지하거나 시청만 해도 처벌받을 수 있다.",answer:true,hint:"2024년 성폭력처벌법 개정 내용을 떠올려 보세요.",explain:"법 개정으로 딥페이크 성착취물의 소지·구입·저장·시청도 처벌 대상입니다."},
+  {id:38,zone:6,ref:"Q138",type:'ox',q:"생각이 비슷한 사람들끼리만 소통하면서 자기 의견이 메아리처럼 증폭·강화되는 현상을 '디지털 디톡스'라고 한다.",answer:false,hint:"메아리(Echo)가 울리는 방(Chamber)을 떠올려 보세요.",explain:"이 현상은 '에코체임버(Echo Chamber)'예요. 책 11.2는 필터버블과 에코체임버를 함께 다룹니다."},
+  {id:39,zone:6,ref:"Q146",type:'ox',q:"딥페이크 성착취물은 직접 만든 사람만 처벌받고, 단순히 소지하거나 시청한 사람은 처벌받지 않는다.",answer:false,hint:"2024년 성폭력처벌법 개정 내용을 떠올려 보세요.",explain:"법 개정으로 딥페이크 성착취물의 소지·구입·저장·시청도 처벌 대상입니다."},
   {id:40,zone:6,ref:"Q145",type:'word',q:"사실이 아닌 내용을 언론 보도처럼 그럴듯하게 꾸며 퍼뜨리는 거짓 정보, 책 11.4에서 식별법을 배우는 이것은?",word:"가짜뉴스",decoys:["진","실","속"],hint:"Fake News를 우리말로!"},
 
   /* ---------- 구역 7 · 12~13강: AI 윤리 → AI 기본법 → 자기결정권 / 문화강국 → 균형 → 3역 → 333 학습 전략 → 신뢰 ---------- */
@@ -239,7 +239,7 @@ const pad=n=>String(n).padStart(2,'0');
 const fmtTime=d=>`${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 const fmtDur=ms=>{const s=Math.floor(ms/1000);return `${pad(Math.floor(s/60))}:${pad(s%60)}`;};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const vibrate=p=>{try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}};
+const vibrate=p=>{try{if(navigator.userActivation&&!navigator.userActivation.hasBeenActive)return;navigator.vibrate&&navigator.vibrate(p);}catch(e){}};
 const inside=(el,ev)=>{const r=el.getBoundingClientRect();return ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom;};
 
 let typeToken=0;
@@ -479,6 +479,10 @@ function screenMenu(){
   else if(ph==='closed')startArea=`<div class="w-full rounded-2xl p-5 mt-4 text-center border border-slate-500/60 bg-slate-500/10">
       <p class="text-lg font-black text-slate-200">🏁 교육주간이 끝났어요</p>
       <p class="text-[13px] text-slate-300 mt-1">참여해 주셔서 고마워요! (${PERIOD_LABEL})${best?'<br>위의 인증서 보기로 내 기록을 확인할 수 있어요.':''}</p></div>`;
+  else if(teacherPreview)startArea=`<button id="startBtn" class="btn-solid w-full rounded-2xl p-5 mt-4 text-left pulse-ring">
+      <div class="flex items-center justify-between"><span class="text-xl">🧪 미리보기 미션 시작</span><span class="font-orb text-sm">PREVIEW</span></div>
+      <div class="text-[13px] font-medium opacity-80 mt-0.5">기록·횟수·선물에 포함되지 않아요 · ${MISSION_COUNT}문제 랜덤 출제</div>
+    </button>`;
   else if(left>0)startArea=`<button id="startBtn" class="btn-solid w-full rounded-2xl p-5 mt-4 text-left pulse-ring">
       <div class="flex items-center justify-between"><span class="text-xl">⚡ 보안 해제 미션 시작</span><span class="font-orb text-sm">${MAX_ATTEMPTS-left+1}회차</span></div>
       <div class="text-[13px] font-medium opacity-80 mt-0.5">${quizData.length}문항 중 ${MISSION_COUNT}문제 랜덤 출제 · 약 5분 · 남은 기회 ${left}번</div>
@@ -936,7 +940,8 @@ function submit(val,el,onWrongReset){
       ${q.ref?`<p class="text-[11px] text-cyan-300/80 mt-3">📖 《AI 읽는 힘, 보는 힘》 ${esc(q.ref)}${/^Q/.test(q.ref)?'번 질문':''}</p>`:''}
       <button class="btn-solid rounded-2xl p-4 mt-5 w-full" style="background:linear-gradient(90deg,#059669,#10b981)">${last?'🚪 최종 출입문 개방':'다음 프로토콜 ▶'}</button></div>`;
     document.body.appendChild(ov);
-    ov.querySelector('button').onclick=()=>{SFX.unlock();ov.remove();stopLoop();S.idx++;
+    const shownAt=Date.now();   // 꾹 누르기 등에서 손을 떼는 순간의 터치가 '다음' 버튼으로 넘어가지 않도록 잠깐 무시
+    ov.querySelector('button').onclick=()=>{if(Date.now()-shownAt<500)return;SFX.unlock();ov.remove();stopLoop();S.idx++;
       if(!last)screenQuestion();else{S.end=Date.now();clearInterval(elapsedTimer);screenEscape();}};
   }else{
     S.mistakes++;S.triedWrong=true;S.locked=true;
