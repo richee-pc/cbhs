@@ -569,6 +569,7 @@ function screenMenu(){
   // 등록된 기기라면 서버의 공식 기록(남은 기회·최고 등급)으로 한 번 맞춤
   if(!menuSynced&&rec.sid){menuSynced=true;syncFromServer().then(ch=>{if(ch&&$('#menuRoot'))screenMenu();});}
   // 반별 참여율 랭킹: 바로 그리고 1분마다 서버에서 새로 받아옴
+  $('#boardBox').onclick=e=>{const b=e.target.closest('[data-bg]');if(!b)return;SFX.tap();boardGrade=+b.dataset.bg;renderBoard();};
   renderBoard();loadBoard();clearInterval(boardTimer);boardTimer=setInterval(loadBoard,60000);
   // 교사용 숨은 검증기: 로고 5번 연속 탭
   $('#logo').onclick=()=>{const n=Date.now();logoTaps=(n-logoTapT<600)?logoTaps+1:1;logoTapT=n;if(logoTaps>=5){logoTaps=0;teacherVerify();}};
@@ -576,7 +577,7 @@ function screenMenu(){
 
 // ===== 반별 참여율 실시간 랭킹 (서버 action 'board', 도전 완료 학생 ÷ 반 재학생 수) =====
 const BOARD_GRADES=[1,2];   // 랭킹에 보여줄 학년 (3학년은 반별 순위 미운영)
-let boardTimer=null,boardData=null;
+let boardTimer=null,boardData=null,boardGrade=BOARD_GRADES[0];   // 처음엔 누구나 1학년 탭
 async function loadBoard(){
   if(!$('#boardBox')){clearInterval(boardTimer);return;}   // 메뉴를 떠나면 갱신 중지
   try{const d=await api({action:'board'},2);if(d&&d.status==='ok')boardData=d;}catch(e){}
@@ -598,13 +599,12 @@ function boardRows(list){
 }
 function renderBoard(){
   const el=$('#boardBox');if(!el)return;
-  const body=BOARD_GRADES.map(g=>{
-    const list=boardData&&boardData.grades&&boardData.grades[g];
-    return `<p class="font-black text-[13px] text-cyan-200 mt-3 mb-1">${g}학년</p>
-      <div class="space-y-1">${list?boardRows(list):'<p class="text-center text-[12px] text-slate-400 py-3">📡 랭킹 불러오는 중…</p>'}</div>`;}).join('');
+  const g=boardGrade,list=boardData&&boardData.grades&&boardData.grades[g];
+  const tabs=BOARD_GRADES.map(x=>`<button data-bg="${x}" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold ${x===g?'bg-cyan-400 text-slate-900':'bg-black/30 text-slate-300'}">${x}학년</button>`).join('');
   el.innerHTML=`<p class="font-bold text-cyan-300">🏆 반별 참여율 실시간 랭킹</p>
-    <p class="text-[11px] text-slate-400 mt-0.5">1·2학년 학년별 참여율 1위 반에는 <b class="text-amber-300">간식 선물</b>이! (도전을 끝까지 마친 학생 수 ÷ 반 인원)</p>
-    ${body}
+    <p class="text-[11px] text-slate-400 mt-0.5 mb-2">1·2학년 학년별 참여율 1위 반에는 <b class="text-amber-300">간식 선물</b>이! (도전을 끝까지 마친 학생 수 ÷ 반 인원)</p>
+    <div class="flex gap-1.5 mb-2">${tabs}</div>
+    <div class="space-y-1">${list?boardRows(list):'<p class="text-center text-[12px] text-slate-400 py-3">📡 랭킹 불러오는 중…</p>'}</div>
     <p class="text-[10px] text-slate-500 mt-2 text-right">${phase()==='before'?'10월 26일(월) 오픈 후 집계 시작 · ':''}${boardData?boardData.at+' 기준 · ':''}1분마다 자동 갱신</p>`;
 }
 
