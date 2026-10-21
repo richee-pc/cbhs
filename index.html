@@ -527,7 +527,9 @@ function screenMenu(){
 
     ${startArea}
     </div><div>
-    <div class="panel rounded-2xl p-4 mt-5">
+    <div class="panel rounded-2xl p-4 mt-5" id="boardBox"></div>
+
+    <div class="panel rounded-2xl p-4 mt-4">
       <p class="font-bold text-cyan-300 mb-2">🎁 탈출 등급 & 보상</p>
       <p class="text-[12px] text-slate-400 mb-2">점수 = 100 − 오답×10 − 힌트×5</p>
       <div class="space-y-1.5">
@@ -566,8 +568,50 @@ function screenMenu(){
   $('#muteBtn').onclick=e=>{muted=!muted;e.target.textContent=muted?'🔇 소리 꺼짐':'🔊 소리 켜짐';SFX.tap();};
   // 등록된 기기라면 서버의 공식 기록(남은 기회·최고 등급)으로 한 번 맞춤
   if(!menuSynced&&rec.sid){menuSynced=true;syncFromServer().then(ch=>{if(ch&&$('#menuRoot'))screenMenu();});}
+  // 반별 참여율 랭킹: 바로 그리고 1분마다 서버에서 새로 받아옴
+  $('#boardBox').onclick=e=>{const b=e.target.closest('[data-bg]');if(!b)return;SFX.tap();boardGrade=+b.dataset.bg;renderBoard();};
+  renderBoard();loadBoard();clearInterval(boardTimer);boardTimer=setInterval(loadBoard,60000);
   // 교사용 숨은 검증기: 로고 5번 연속 탭
   $('#logo').onclick=()=>{const n=Date.now();logoTaps=(n-logoTapT<600)?logoTaps+1:1;logoTapT=n;if(logoTaps>=5){logoTaps=0;teacherVerify();}};
+}
+
+// ===== 반별 참여율 실시간 랭킹 (서버 action 'board', 도전 완료 학생 ÷ 반 재학생 수) =====
+let boardTimer=null,boardData=null,boardGrade=null;
+function myClass(){const s=String(loadRec().sid||'');return /^\d{5}$/.test(s)?{g:+s[0],c:+s.slice(1,3)}:null;}
+async function loadBoard(){
+  if(!$('#boardBox')){clearInterval(boardTimer);return;}   // 메뉴를 떠나면 갱신 중지
+  try{const d=await api({action:'board'},2);if(d&&d.status==='ok')boardData=d;}catch(e){}
+  renderBoard();
+}
+function renderBoard(){
+  const el=$('#boardBox');if(!el)return;
+  const mine=myClass();if(!boardGrade)boardGrade=mine?mine.g:1;
+  const g=boardGrade,list=boardData&&boardData.grades&&boardData.grades[g];
+  const tabs=[1,2,3].map(x=>`<button data-bg="${x}" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold ${x===g?'bg-cyan-400 text-slate-900':'bg-black/30 text-slate-300'}">${x}학년${mine&&mine.g===x?' ★':''}</button>`).join('');
+  let body;
+  if(!list)body=`<p class="text-center text-[12px] text-slate-400 py-6">📡 랭킹 불러오는 중…</p>`;
+  else{
+    const rows=[...list].sort((a,b)=>b.rate-a.rate||b.n-a.n||a.c-b.c);
+    let rank=0,prev=null;
+    body=rows.map((r,i)=>{
+      if(r.rate!==prev){rank=i+1;prev=r.rate;}
+      const me=mine&&mine.g===g&&mine.c===r.c;
+      const medal=r.n>0&&rank<=3?['🥇','🥈','🥉'][rank-1]:`<span class="font-orb text-[11px] text-slate-500">${rank}</span>`;
+      return `<div class="flex items-center gap-2 rounded-lg px-2 py-1 ${me?'bg-amber-400/15 ring-1 ring-amber-400/70':''}">
+        <span class="w-6 text-center">${medal}</span>
+        <span class="w-11 text-[12px] font-bold ${me?'text-amber-300':''}">${r.c}반</span>
+        <span class="flex-1 h-2.5 rounded-full bg-slate-800 overflow-hidden"><span class="block h-full rounded-full ${me?'bg-amber-400':'bg-cyan-400'}" style="width:${Math.min(100,r.rate)}%;${r.rate?'box-shadow:0 0 8px currentColor':''}"></span></span>
+        <span class="w-[84px] text-right text-[11px] font-mono2 ${me?'text-amber-200':'text-slate-300'}">${r.n}/${r.size}명 <b>${r.rate}%</b></span>
+      </div>`;}).join('');
+    const myRow=mine&&mine.g===g?rows.find(r=>r.c===mine.c):null;
+    if(myRow){const myRank=rows.filter(r=>r.rate>myRow.rate).length+1;
+      body=`<p class="text-[12px] text-amber-200 mb-1.5">⭐ 우리 반(${g}-${mine.c}) 현재 <b>${myRank}위</b> · 참여율 ${myRow.rate}%</p>`+body;}
+  }
+  el.innerHTML=`<p class="font-bold text-cyan-300">🏆 반별 참여율 실시간 랭킹</p>
+    <p class="text-[11px] text-slate-400 mt-0.5 mb-2">학년별 참여율 1위 반에는 <b class="text-amber-300">간식 선물</b>이! (도전을 끝까지 마친 학생 수 ÷ 반 인원)</p>
+    <div class="flex gap-1.5 mb-2">${tabs}</div>
+    <div class="space-y-1">${body}</div>
+    <p class="text-[10px] text-slate-500 mt-2 text-right">${phase()==='before'?'10월 26일(월) 오픈 후 집계 시작 · ':''}${boardData?boardData.at+' 기준 · ':''}1분마다 자동 갱신</p>`;
 }
 
 /* =========================================================
